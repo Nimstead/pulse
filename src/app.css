@@ -1,0 +1,120 @@
+/* Nimstead "Plain Sight": ink on paper, square everything, crimson only where exploitation is confirmed. */
+:root {
+  --paper: #ffffff;
+  --shade: #ededeb; /* Concrete: fields, hover washes, tracks */
+  --ink: #111111;
+  --ink-2: #3a3a38;
+  --ink-3: #5c5c5c; /* Graphite */
+  --rule: #e4e4e2;
+  --rule-strong: #111111;
+  --line-strong: #8a8a87;
+  --vol: #111111; /* reported volume is ink */
+  --vol-soft: #8a8a87;
+  --kev: #b0122c; /* Seal Crimson: exploited only; the dark theme uses the brand's readable #F4A3AE */
+  /* a lighter step of whichever crimson the theme uses; ≥3:1 on Paper in both themes */
+  --kev-soft: color-mix(in srgb, var(--kev) 58%, var(--paper));
+  --kev-tint: #f8e3e6; /* Blush */
+  --kev-ink: #8e0e23; /* Wine: crimson text on Blush */
+  --sev-c: #111111;
+  --sev-h: #5c5c5c;
+  --sev-m: #a3a3a0;
+  --sev-l: #d6d6d3;
+  --sev-u: #ededeb;
+  --band: #111111;
+  --band-fg: #f2f2f0;
+  --ash: #bdbdbd;
+  --band-line: #2c2c2c;
+  --seal: #b0122c;
+  --band-kev: #f4a3ae; /* readable crimson on the Ink band in both themes; Seal Crimson fails 3:1 there */
+  --disabled: #8a8a8a;
+  --chrome: var(--paper);
+  --display: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+  --sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'Geist Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+  --gutter: clamp(16px, 3vw, 40px);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* ease-out-expo: decelerates, never overshoots */
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #111111; --shade: #1e1e1e; --ink: #f2f2f0; --ink-2: #cfcfcc; --ink-3: #a3a3a0;
+    --rule: #2c2c2c; --rule-strong: #f2f2f0; --line-strong: #6e6e6c; --vol: #f2f2f0; --vol-soft: #6e6e6c;
+    --kev: #f4a3ae; --kev-tint: #3a1016; --kev-ink: #f4a3ae;
+    --sev-c: #f2f2f0; --sev-h: #a3a3a0; --sev-m: #6e6e6c; --sev-l: #3a3a3a; --sev-u: #262626;
+    --band: #0a0a0a; color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --paper: #111111; --shade: #1e1e1e; --ink: #f2f2f0; --ink-2: #cfcfcc; --ink-3: #a3a3a0;
+  --rule: #2c2c2c; --rule-strong: #f2f2f0; --line-strong: #6e6e6c; --vol: #f2f2f0; --vol-soft: #6e6e6c;
+  --kev: #f4a3ae; --kev-tint: #3a1016; --kev-ink: #f4a3ae;
+  --sev-c: #f2f2f0; --sev-h: #a3a3a0; --sev-m: #6e6e6c; --sev-l: #3a3a3a; --sev-u: #262626;
+  --band: #0a0a0a; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1rem/1.55 var(--sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 300ms ease, color 300ms ease;
+}
+::selection { background: var(--ink); color: var(--paper); }
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+input, textarea { caret-color: var(--ink); }
+input::placeholder, textarea::placeholder { color: var(--ink-3); }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+a:hover { text-decoration-thickness: 2px; }
+button { font: inherit; color: inherit; }
+/* ink, not crimson: crimson means exploited here, never focus */
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 var(--gutter); }
+.kicker { font: 600 0.6875rem/1.2 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.num { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 0.45em; padding: 0.2em 0.6em;
+  font: 700 0.6875rem/1.5 var(--sans); letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+  border: 1px solid var(--line-strong); color: var(--ink-2);
+}
+/* exploited chips are the Fix-now badge: Wine on Blush, led by the seal square */
+.chip.red, .chip.solid-red { border-color: transparent; background: var(--kev-tint); color: var(--kev-ink); }
+.chip.red::before, .chip.solid-red::before { content: ''; width: 7px; height: 7px; background: var(--kev); flex-shrink: 0; }
+.chip.solid-red { background: var(--seal); color: #ffffff; }
+.chip.solid-red::before { background: #ffffff; }
+.swatch { display: inline-block; width: 0.75em; height: 0.75em; vertical-align: -0.04em; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 70%, transparent); }
+.linklike { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+.linklike:hover { text-decoration-thickness: 2px; }
+table.data { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+table.data th { text-align: left; font: 600 0.6875rem/1.2 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding: 0 0.75rem 0.55rem 0; border-bottom: 2px solid var(--rule-strong); white-space: nowrap; }
+table.data td { padding: 0.6rem 0.75rem 0.6rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.data td.r, table.data th.r { text-align: right; }
+table.data tr:hover td { background: var(--shade); }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.view-head { padding: clamp(2rem, 4vw, 3.25rem) 0 1.25rem; max-width: 72ch; }
+.view-head h2 { font: 800 clamp(2.2rem, 5vw, 3.75rem)/0.95 var(--display); letter-spacing: -0.05em; }
+.view-head .insight { color: var(--ink); font-size: clamp(1.25rem, 2vw, 1.5rem); line-height: 1.3; letter-spacing: -0.02em; font-weight: 500; max-width: 46ch; margin-top: 1.1rem; }
+.view-head .insight b { font-weight: 800; }
+.view-head p { color: var(--ink-3); margin: 0.9rem 0 0; font-size: 1.125rem; line-height: 1.5; max-width: 62ch; }
+.view-period { margin-bottom: 2rem; }
+@media (min-width: 1100px) {
+  .view-head { max-width: none; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: clamp(2rem, 5vw, 5rem); align-items: start; }
+  .view-head h2 { grid-row: span 2; }
+  .view-head .insight { margin-top: 0.35rem; }
+}
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+/* CVE IDs are literal identifiers: the one place Geist Mono belongs */
+.mono-id { font: 500 0.875em var(--mono); letter-spacing: -0.01em; white-space: nowrap; }
+td.nw { white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+}

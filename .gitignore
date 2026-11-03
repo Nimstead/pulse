@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.cache/
+public/data/
+.impeccable/review/
+.claude/
+.codex/
+.gemini/
+.impeccable/
+.playwright-mcp/
+.wrangler/
+__pycache__/

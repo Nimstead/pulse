@@ -1,0 +1,44 @@
+name: Refresh data and deploy
+
+on:
+  schedule:
+    - cron: '30 14 * * *' # daily, after the EPSS (~13:00 UTC) and NVD feed updates
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: .cache
+          key: feeds-${{ github.run_id }}
+          restore-keys: feeds-
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: python etl/build.py
+      - run: npm run build
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.157.0'
+          command: deploy
