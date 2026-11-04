@@ -231,7 +231,7 @@
   <p class="span"><span>{monthShort(trail[0].ym)}</span><span>{monthShort(latest.ym)}</span></p>
 {/snippet}
 
-<Figure n="1b" name="cves-per-month" title="CVEs published, and new KEV listings, per month" sub="Drag, flick or resize the window under the chart; the whole page recalculates."
+<Figure n="1b" name="cves-per-month" title="CVEs published, and new KEV listings, per month" sub="Drag, flick or resize the window directly under the chart; the whole page recalculates."
   csv={() => sel.map((m) => ({ month: m.ym, published: m.n, later_exploited: m.kevPub, kev_listings: m.kev, rejected: m.rej }))}>
   {#snippet legend()}
     <span><span class="swatch" style:background="var(--vol)"></span> CVEs published</span>
@@ -344,7 +344,10 @@
   .span { display: flex; justify-content: space-between; margin: 0.35rem 0 0; font-size: 0.6875rem; color: var(--ash); }
 
   .mirror { margin-top: 0.1rem; }
-  .brush { margin: 0.75rem 0 1rem; padding: 0.85rem 0 0.9rem; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  /* the navigator sits flush under the plots it drives, on their x-range (Bars' 48px/4px gutters), with the period row beneath */
+  .brush { margin: 0.5rem 0 0.25rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--rule); }
+  .brush :global(.brush) { margin-left: 48px; width: calc(100% - 52px); }
+  .brush :global(.period .bar) { order: 1; }
   .swatch.hatch { background: repeating-linear-gradient(45deg, var(--ink-3) 0 1.5px, transparent 1.5px 4px); border: 1px solid var(--ink-3); }
   .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); margin-top: 1rem; }
   .latest { border-top: 2px solid var(--rule-strong); padding-top: 1.1rem; margin-top: 1.5rem; }

@@ -155,8 +155,21 @@
   <div class="closing">
     <div class="wrap">
       <!-- endorsed lockup: the product is the hero here, so Nimstead and its seal step down to the endorsement -->
-      <p class="mark">Pulse<small>a <b>Nimstead<i class="seal" aria-hidden="true"></i></b> product</small></p>
-      <p class="gen">Generated {data.meta.generated.replace('T', ' ').slice(0, 16)} UTC from public data. Every figure cites its source above. Not affiliated with NIST, CISA or FIRST.</p>
+      <a class="mark" href="https://nimstead.systems">Pulse<small>a <b>Nimstead<i class="seal" aria-hidden="true"></i></b> product</small></a>
+      <nav class="links" aria-label="Footer">
+        <div><h2>Data</h2><ul>
+          <li><a href="https://nvd.nist.gov/">NVD</a></li>
+          <li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA KEV</a></li>
+          <li><a href="https://www.first.org/epss/">FIRST EPSS</a></li>
+          <li><a href="#notes" onclick={(e) => { e.preventDefault(); document.getElementById('notes')?.scrollIntoView() }}>Method notes</a></li>
+        </ul></div>
+        <div><h2>Project</h2><ul>
+          <li><a href="https://nimstead.systems">Nimstead</a></li>
+          <li><a href="https://github.com/Nimstead/pulse">Source on GitHub</a></li>
+          <li><a href="#top" onclick={(e) => { e.preventDefault(); scrollTo({ top: 0 }) }}>Back to top</a></li>
+        </ul></div>
+      </nav>
+      <p class="gen">Generated {data.meta.generated.replace('T', ' ').slice(0, 16)} UTC from public data. Not affiliated with NIST, CISA or FIRST. Code MIT; the Nimstead name and marks are not licensed.</p>
     </div>
   </div>
   <Search bind:open={ui.search} kev={data.kev} vendors={data.vendors.rows} oncve={openCve} onvendor={openVendor} />
@@ -210,13 +223,21 @@
   .notes li:target, .notes li:focus-within { background: var(--shade); }
   .notes b { color: var(--ink); }
   .closing { background: var(--band); color: var(--band-fg); padding: clamp(2.5rem, 6vw, 4.5rem) 0 2.5rem; }
-  .closing .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1.5rem 3rem; }
-  .mark { margin: 0; display: grid; gap: 0.75rem; font: 800 clamp(2.5rem, 7vw, 5rem)/0.86 var(--display); letter-spacing: -0.055em; }
+  .closing .wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 2.5rem 3rem; }
+  .mark { justify-self: start; display: grid; gap: 0.75rem; font: 800 clamp(2.5rem, 7vw, 5rem)/0.86 var(--display); letter-spacing: -0.055em; color: var(--band-fg); text-decoration: none; }
+  .mark:hover small { color: var(--band-fg); }
+  .links { display: flex; gap: clamp(2rem, 5vw, 4.5rem); }
+  .links h2 { font: 600 0.6875rem/1.3 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ash); margin: 0 0 0.6rem; }
+  .links ul { list-style: none; margin: 0; padding: 0; }
+  .links a { display: inline-block; padding: 0.3rem 0; font-size: 0.9375rem; color: var(--band-fg); text-decoration: none; border-bottom: 1px solid transparent; }
+  .links a:hover { border-bottom-color: currentColor; }
+  .gen { grid-column: 1 / -1; padding-top: 1.25rem; border-top: 1px solid var(--band-line); max-width: none; }
+  @media (max-width: 640px) { .closing .wrap { grid-template-columns: minmax(0, 1fr); } }
   .mark small { font: 400 0.8125rem/1.2 var(--sans); letter-spacing: 0; color: var(--ash); }
   .mark b { font-weight: 800; letter-spacing: -0.03em; color: var(--band-fg); }
   .mark .seal { font-size: 1.375rem; }
   .seal { display: inline-block; width: 0.18em; height: 0.18em; background: var(--seal); vertical-align: top; margin: 0.06em 0 0 0.05em; }
-  .gen { margin: 0; max-width: 46ch; font-size: 0.8125rem; color: var(--ash); }
+  .gen { margin: 0; font-size: 0.8125rem; color: var(--ash); }
   @media (max-width: 640px) {
     .search span, .search kbd { display: none; }
     .search { width: 2.75rem; padding: 0; justify-content: center; color: var(--ink); }
