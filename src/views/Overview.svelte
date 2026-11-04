@@ -176,6 +176,7 @@
     </div>
   </dl>
 </section>
+<div class="view-period"><Period {months} compact /></div>
 
 <section class="pulse" aria-label="Vital signs for {monthLong(latest.ym)}">
   <div class="sign">
@@ -231,7 +232,7 @@
   <p class="span"><span>{monthShort(trail[0].ym)}</span><span>{monthShort(latest.ym)}</span></p>
 {/snippet}
 
-<Figure n="1b" name="cves-per-month" title="CVEs published, and new KEV listings, per month" sub="Drag, flick or resize the window directly under the chart; the whole page recalculates."
+<Figure n="1b" name="cves-per-month" title="CVEs published, and new KEV listings, per month" sub="The months in the period set above. Every section shares that period."
   csv={() => sel.map((m) => ({ month: m.ym, published: m.n, later_exploited: m.kevPub, kev_listings: m.kev, rejected: m.rej }))}>
   {#snippet legend()}
     <span><span class="swatch" style:background="var(--vol)"></span> CVEs published</span>
@@ -248,7 +249,6 @@
       series={[{ key: 'kev', label: 'Added to KEV', color: 'var(--kev)', values: sel.map((m) => m.kev) }]}
       tick={() => null} tipTitle={monthLong} empty={NO_KEV} cap shade={BACKFILL} />
   </div>
-  <div class="brush"><Period {months} compact /></div>
   {#snippet notes()}
     Upper panel: CVEs by NVD publication month. Lower panel, on its own scale: KEV listings by the month CISA added them. The two scales differ by about three orders of magnitude because almost every CVE is never exploited in a way CISA can confirm. A KEV bar with a break is taller than its axis; hover or step to it for its value.
   {/snippet}
@@ -344,10 +344,6 @@
   .span { display: flex; justify-content: space-between; margin: 0.35rem 0 0; font-size: 0.6875rem; color: var(--ash); }
 
   .mirror { margin-top: 0.1rem; }
-  /* the navigator sits flush under the plots it drives, on their x-range (Bars' 48px/4px gutters), with the period row beneath */
-  .brush { margin: 0.5rem 0 0.25rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--rule); }
-  .brush :global(.brush) { margin-left: 48px; width: calc(100% - 52px); }
-  .brush :global(.period .bar) { order: 1; }
   .swatch.hatch { background: repeating-linear-gradient(45deg, var(--ink-3) 0 1.5px, transparent 1.5px 4px); border: 1px solid var(--ink-3); }
   .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); margin-top: 1rem; }
   .latest { border-top: 2px solid var(--rule-strong); padding-top: 1.1rem; margin-top: 1.5rem; }
