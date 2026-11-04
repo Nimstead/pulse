@@ -66,7 +66,7 @@
   {/snippet}
 </Figure>
 
-<Figure n={9} name="epss-distribution" title="Exploit probability (EPSS) across all CVEs and exploited CVEs" sub="Share of each population in each EPSS band. Scores are current, not as at publication."
+<Figure n={9} name="epss-distribution" title="Exploit probability (EPSS) across all CVEs and exploited CVEs" period={false} sub="All years: share of each population in each EPSS band. Scores are current, not as at publication."
   csv={() => binLabels.map((l, i) => ({ epss_band: l, all_cves: epss.all[i], kev_cves: epss.kev[i] }))}>
   {#snippet legend()}
     <span><span class="swatch" style:background="var(--vol)"></span> All CVEs not in KEV ({num(allTot)})</span>
@@ -77,10 +77,10 @@
       { key: 'all', label: 'All CVEs not in KEV', color: 'var(--vol)', values: epss.all.map((v) => v / (allTot || 1)) },
       { key: 'kev', label: 'CVEs in KEV', color: 'var(--kev)', values: epss.kev.map((v) => v / (kevTot || 1)) },
     ]} tick={(l) => l} />
-  {#snippet notes()}{num(highEpss)} CVEs that are not in KEV score 10% or more. That is the watchlist below: likely targets with no CISA listing yet.{/snippet}
+  {#snippet notes()}{num(highEpss)} CVEs that are not in KEV score 10% or more. That is the likely-targets list below: likely targets with no CISA listing yet.{/snippet}
 </Figure>
 
-<Figure n={10} name="epss-watchlist" title="Watchlist: high EPSS, not yet in KEV" sub="Every row is a likely target (EPSS 10% or more, no KEV listing yet), one row per product, ranked by its highest EPSS. The {num(watch.length)} CVEs published {monthShort(a)} to {monthShort(b)} among the 300 highest-EPSS CVEs not in KEV ({num(epss.watchTotal)} score 10% or more overall)."
+<Figure n={10} name="epss-watchlist" title="Likely targets: high EPSS, not yet in KEV" sub="One row per product with EPSS of 10% or more and no KEV listing yet, ranked by its highest EPSS. It draws on the {num(watch.length)} CVEs published {monthShort(a)} to {monthShort(b)} among the 300 highest-EPSS CVEs not in KEV, of {num(epss.watchTotal)} at 10% or more overall."
   csv={() => watch.map((w) => ({ cve: w.id, epss: w.epss, percentile: w.pct, vendor: w.vendor, product: w.product, severity: w.sev, score: w.score, published: w.pub }))}>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
   <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
@@ -94,7 +94,7 @@
             <td><b>{g.name}</b></td>
             <td class="r">{num(g.rows.length)}</td>
             <td><button class="linklike mono-id" onclick={() => openCve(w.id)}>{w.id}</button><div class="sm">{dateShort(w.pub)}</div></td>
-            <td>{w.sev ? `${titleCase(w.sev.toLowerCase())} ${w.score}` : '—'}</td>
+            <td>{w.sev ? `${titleCase(w.sev.toLowerCase())}${w.score != null ? ` ${w.score.toFixed(1)}` : ''}` : '—'}</td>
             <td class="r nw">{age < 1 ? 'New' : age < 24 ? `${age} mo` : `${Math.floor(age / 12)} yr`}</td>
             <td class="r"><b>{epssPct(w.epss)}</b></td>
           </tr>
@@ -142,6 +142,6 @@
   .hb span.dark { color: var(--paper); }
   .hb span.edge { box-shadow: inset 0 0 0 1px var(--line-strong); }
   .sm { font-size: 0.75rem; color: var(--ink-3); }
-  .more { margin-top: 0.9rem; font-weight: 600; }
+  .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   @media (max-width: 560px) { .hrow { grid-template-columns: 1fr; gap: 0.35rem; } }
 </style>

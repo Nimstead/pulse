@@ -2,8 +2,8 @@
   import { num, pct } from '../lib/data'
 
   type Row = { key: string; label: string; sub?: string; value: number; kev: number; spark?: number[] }
-  let { rows, valueLabel = 'CVEs', kevLabel = 'Exploited', selected = '', onpick, tone = 'blue', byKev = false, showRate = false }: {
-    rows: Row[]; valueLabel?: string; kevLabel?: string; selected?: string; onpick?: (key: string) => void; byKev?: boolean; showRate?: boolean; tone?: 'blue' | 'red'
+  let { rows, valueLabel = 'CVEs', kevLabel = 'Exploited', selected = '', onpick, tone = 'ink', byKev = false, showRate = false }: {
+    rows: Row[]; valueLabel?: string; kevLabel?: string; selected?: string; onpick?: (key: string) => void; byKev?: boolean; showRate?: boolean; tone?: 'ink' | 'red'
   } = $props()
 
   const max = $derived(Math.max(1, ...rows.map((r) => r.value)))

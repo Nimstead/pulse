@@ -16,7 +16,7 @@
 
 <div class="period" class:compact>
   <div class="bar">
-    <span class="kicker">Period · all sections</span>
+    <span class="kicker">Period · shared across tabs</span>
     <span class="range"><b>{monthShort(months[ui.from].ym)}</b> – <b>{monthShort(months[ui.to].ym)}</b> <span class="n">· {span} months{active ? '' : ' · Custom'}</span></span>
     <span class="presets" role="group" aria-label="Quick periods">
       {#each presets as [l, n] (l)}
@@ -33,12 +33,12 @@
 
 <style>
   .period { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; min-width: 0; }
-  .bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1rem; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
   .range { font-size: 0.9375rem; }
   .range b { font-weight: 800; letter-spacing: -0.01em; }
   .n { color: var(--ink-3); }
   .presets { margin-left: auto; display: inline-flex; border: 2px solid var(--ink); }
-  .presets button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.4rem 0.8rem; font: 700 0.75rem/1.2 var(--sans); color: var(--ink-2); cursor: pointer; transition: background-color 120ms, color 120ms; }
+  .presets button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.4rem 0.8rem; min-height: 2.75rem; font: 700 0.75rem/1.2 var(--sans); color: var(--ink-2); cursor: pointer; transition: background-color 120ms, color 120ms; }
   .presets button:hover { color: var(--ink); background: var(--shade); }
   .presets button:first-child { border-left: 0; }
   .presets button:active { background: var(--shade); }

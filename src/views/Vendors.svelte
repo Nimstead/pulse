@@ -49,7 +49,7 @@
 
 <header class="view-head">
   <h2>Vendors and weaknesses</h2>
-  {#if mostKev.length === 2 && cRows.length}<p class="insight"><b>{titleCase(mostKev[0].key)}</b> had the most CVEs added to KEV from {monthShort(m0)} to {monthShort(m1)} ({num(mostKev[0].kev)}), ahead of {titleCase(mostKev[1].key)} ({num(mostKev[1].kev)}). {#if kevCwe}The most common weakness among them is <b>{kevCwe.name ?? kevCwe.key}</b> ({num(kevCwe.kev)}).{/if}</p>{/if}
+  {#if mostKev.length === 2 && cRows.length}<p class="insight"><b>{titleCase(mostKev[0].key)}</b> had the most CVEs added to KEV from {monthShort(m0)} to {monthShort(m1)} ({num(mostKev[0].kev)}), ahead of {titleCase(mostKev[1].key)} ({num(mostKev[1].kev)}). {#if kevCwe}The most common weakness across all KEV listings in the period is <b>{kevCwe.name ?? kevCwe.key}</b> ({num(kevCwe.kev)}).{/if}</p>{/if}
   <p>Where CVEs come from, and the classes of mistake behind them. Select a vendor for its products and exploited CVEs.</p>
 </header>
 <div class="view-period"><Period {months} compact /></div>
@@ -67,16 +67,16 @@
   <div class="drill" bind:this={drill}>
     {#if current}
       {#key current.key}
-        <Figure n="13a" name="vendor-{current.key}" title={titleCase(current.key)} sub="{num(current.total)} CVEs since records began · {num(current.kev)} exploited. Product counts follow KEV's broader product names."
+        <Figure n="13a" period={false} name="vendor-{current.key}" title={titleCase(current.key)} sub="All years: {num(current.total)} CVEs since records began · {num(current.kev)} exploited. Product counts follow KEV's broader product names."
           csv={() => (current.products ?? []).map((p) => ({ product: p.key, cves: p.total, exploited: p.kev }))}>
           {#snippet notes()}Exploited counts match CISA's product names, which can differ from NVD's, so a product may show fewer exploited CVEs than its vendor total suggests.{/snippet}
           <Bars label="{current.key} CVEs per year" labels={vendors.years} height={150}
             series={[{ key: 'n', label: 'CVEs', color: 'var(--vol)', values: current.byYear }]}
             tick={(l, i) => ((vendors.years.length - 1 - i) % 5 === 0 ? l : null)} />
-          <h3 class="kicker sec">Top products</h3>
+          <h4 class="kicker sec">Top products</h4>
           <Rows rows={(current.products ?? []).map((p) => ({ key: p.key, label: titleCase(p.key), value: p.total, kev: p.kev }))} showRate valueLabel="CVEs, all time" kevLabel="KEV, all time" />
           {#if vendorKev.length}
-            <h3 class="kicker sec">Exploited CVEs, all time ({num(current.kev)})</h3>
+            <h4 class="kicker sec">Exploited CVEs, all time ({num(current.kev)})</h4>
             <ul class="kl">
               {#each vendorKev.slice(0, 12) as k (k.id)}
                 <li><button class="linklike mono-id" onclick={() => openCve(k.id)}>{k.id}</button><span>{k.product}</span><span class="d">{dateShort(k.added)}</span></li>
@@ -101,7 +101,7 @@
 
 <style>
   .toggle { display: inline-flex; border: 2px solid var(--ink); margin-bottom: 1rem; }
-  .toggle button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.45rem 0.85rem; font: 700 0.8125rem var(--sans); color: var(--ink-2); cursor: pointer; }
+  .toggle button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.45rem 0.85rem; min-height: 2.75rem; font: 700 0.8125rem var(--sans); color: var(--ink-2); cursor: pointer; }
   .toggle button:first-child { border-left: 0; }
   .toggle button:hover { background: var(--shade); color: var(--ink); }
   .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }

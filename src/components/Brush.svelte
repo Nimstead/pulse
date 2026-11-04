@@ -97,7 +97,8 @@
 
   function keys(e: KeyboardEvent, which: 'l' | 'r' | 'move') {
     const step = e.shiftKey ? 12 : 1
-    const d = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? step : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -step : 0
+    // Home and End travel the whole range; every clamp below keeps the window valid
+    const d = e.key === 'Home' ? -n : e.key === 'End' ? n : e.key === 'ArrowRight' || e.key === 'ArrowUp' ? step : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -step : 0
     if (!d) return
     e.preventDefault()
     if (which === 'l') from = clamp(from + d, 0, to - MIN + 1)
@@ -123,12 +124,12 @@
     {#if ghost && (ghost[0] !== from || ghost[1] !== to)}<div class="ghost" style:left="{ghost[0] * px}px" style:width="{(ghost[1] - ghost[0] + 1) * px}px"></div>{/if}
     <div class="win" style:left="{L.current * px}px" style:width="{(R.current - L.current) * px}px"
       role="slider" tabindex="0" aria-label="Selected period" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={from}
-      aria-valuetext="{monthShort(labels[from])} to {monthShort(labels[to])}" onkeydown={(e) => keys(e, 'move')}>
-      <span class="h l" role="slider" tabindex="0" aria-label="Start month" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={from}
-        aria-valuetext={monthShort(labels[from])} onkeydown={(e) => { e.stopPropagation(); keys(e, 'l') }}></span>
-      <span class="h r" role="slider" tabindex="0" aria-label="End month" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={to}
-        aria-valuetext={monthShort(labels[to])} onkeydown={(e) => { e.stopPropagation(); keys(e, 'r') }}></span>
-    </div>
+      aria-valuetext="{monthShort(labels[from])} to {monthShort(labels[to])}" onkeydown={(e) => keys(e, 'move')}></div>
+    <!-- siblings of the window, not children: a slider cannot contain sliders -->
+    <span class="h" style:left="{L.current * px - 3}px" role="slider" tabindex="0" aria-label="Start month" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={from}
+      aria-valuetext={monthShort(labels[from])} onkeydown={(e) => keys(e, 'l')}></span>
+    <span class="h" style:left="{R.current * px - 5}px" role="slider" tabindex="0" aria-label="End month" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={to}
+      aria-valuetext={monthShort(labels[to])} onkeydown={(e) => keys(e, 'r')}></span>
   </div>
   <div class="years" aria-hidden="true">
     {#each years.filter((i) => i * px < width - 34) as i (i)}<span style:left="{i * px}px">{labels[i].slice(0, 4)}</span>{/each}
@@ -152,8 +153,6 @@
   .h { position: absolute; top: 50%; width: 8px; height: 24px; margin-top: -12px; background: var(--ink); cursor: ew-resize; }
   .h:focus-visible { outline-offset: 3px; }
   .h::after { content: ''; position: absolute; inset: -10px -8px; } /* hit padding beyond the visible grip */
-  .h.l { left: -5px; }
-  .h.r { right: -5px; }
   .years { position: relative; height: 18px; }
   .years span { position: absolute; top: 3px; font-size: 11px; color: var(--ink-3); transform: translateX(-1px); padding-left: 3px; border-left: 1px solid var(--rule); line-height: 1.2; }
 </style>

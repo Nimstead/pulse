@@ -22,15 +22,16 @@
     const out: Hit[] = []
     const idm = s.match(/^(?:cve-?)?(\d{4})-(\d{4,})$/)
     if (idm) out.push({ kind: 'cve', key: `CVE-${idm[1]}-${idm[2]}`, title: `CVE-${idm[1]}-${idm[2]}`, sub: 'Open case record' })
+    // a vendor is the broader answer, so it leads; capped so KEV entries still show
+    else
+      for (const v of vendors.filter((v) => v.key.includes(s)).slice(0, 2))
+        out.push({ kind: 'vendor', key: v.key, title: titleCase(v.key), sub: `Vendor · ${num(v.total)} CVEs, ${num(v.kev)} exploited` })
     for (const k of kev) {
       if (out.length >= 7) break
       if (idm ? k.id.toLowerCase().startsWith(`cve-${idm[1]}-${idm[2]}`) && k.id.toLowerCase() !== `cve-${idm[1]}-${idm[2]}`
         : `${k.id} ${k.vendor} ${k.product} ${k.name}`.toLowerCase().includes(s))
         out.push({ kind: 'cve', key: k.id, title: k.id, sub: `In KEV · ${k.name}` })
     }
-    if (!idm)
-      for (const v of vendors.filter((v) => v.key.includes(s)).slice(0, 4))
-        out.push({ kind: 'vendor', key: v.key, title: titleCase(v.key), sub: `Vendor · ${num(v.total)} CVEs, ${num(v.kev)} exploited` })
     return out
   })
 
@@ -48,8 +49,8 @@
 
 <dialog bind:this={dlg} onclose={() => (open = false)} onclick={(e) => { if (e.target === dlg) open = false }} aria-label="Search">
   <div class="box">
-    <input bind:this={input} bind:value={q} oninput={() => (active = 0)} onkeydown={keys} placeholder="CVE ID, vendor, product or vulnerability name"
-      aria-label="Search CVEs and vendors" role="combobox" aria-expanded="true" aria-controls="search-hits" aria-activedescendant="hit-{active}" autocomplete="off" spellcheck="false" />
+    <input bind:this={input} bind:value={q} oninput={() => (active = 0)} onkeydown={keys} placeholder="CVE ID, or a KEV vendor, product or name"
+      aria-label="Search CVEs and vendors" role="combobox" aria-expanded="true" aria-controls="search-hits" aria-activedescendant={hits.length ? `hit-${active}` : undefined} autocomplete="off" spellcheck="false" />
     <ul id="search-hits" role="listbox">
       {#each hits as h, i (h.kind + h.key)}
         <!-- svelte-ignore a11y_click_events_have_key_events (keys are handled on the combobox input) -->
@@ -58,7 +59,7 @@
           <span class="t">{h.title}</span><span class="s">{h.sub}</span>
         </li>
       {:else}
-        <li class="empty">No matches. Try a full ID like CVE-2024-3400.</li>
+        <li class="empty">No KEV entry or tracked vendor matches. Enter a full CVE ID to open any record.</li>
       {/each}
     </ul>
     <div class="foot"><kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>Enter</kbd> to open · <kbd>Esc</kbd> to close</div>

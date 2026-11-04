@@ -227,7 +227,7 @@
     {/if}
   </section>
 
-  <Figure n={19} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Exploited first, then likely targets by EPSS, then by CVSS severity" csv={csvRows}>
+  <Figure n={17} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Exploited first, then likely targets by EPSS, then by CVSS severity" csv={csvRows}>
     {#snippet legend()}{#each TIERS as t, i (t.label)}<span><span class="chip" class:solid-red={i === 0} class:red={i === 1}>{t.label}</span> {t.note}</span>{/each}{/snippet}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
     <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
@@ -242,7 +242,7 @@
                 {kev?.vendor ? kvp(kev.vendor, kev.product) : vp(r[6], r[7])}
                 {#if watch.desc[r[0]]}<div class="sm">{watch.desc[r[0]].slice(0, 180)}{watch.desc[r[0]].length > 180 ? '…' : ''}</div>{/if}
               </td>
-              <td class="nw">{#if r[4]}<span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())} {r[3]}</span>{:else}<span class="sm">Not scored</span>{/if}</td>
+              <td class="nw">{#if r[4]}<span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span>{:else}<span class="sm">Not scored</span>{/if}</td>
               <td class="r nw">{#if r[8] != null}<b>{epssPct(r[8])}</b>{#if r[9] != null}<div class="sm">top {r[9] >= 0.999 ? '0.1%' : pct(1 - r[9], 1)}</div>{/if}{:else}—{/if}</td>
               <td class="nw">{#if kev}Added {dateShort(kev.added)}{#if kev.due}<div class="sm" class:overdue={kev.due < today && kev.due >= addDays(today, -90)}>{kev.due >= today ? 'Due' : kev.due >= addDays(today, -90) ? 'Overdue · due' : 'Was due'} {dateShort(kev.due)}</div>{/if}{:else}<span class="sm">—</span>{/if}</td>
               <td class="nw">{r[5] ? (cweNames.get(r[5]) ?? r[5]) : '—'}</td>
@@ -255,7 +255,7 @@
   </Figure>
 
   <div class="grid-2">
-    <Figure n={20} name="your-cves-severity" title="Severity of {your} CVEs against all CVEs" sub="Share by CVSS base severity"
+    <Figure n={18} name="your-cves-severity" title="Severity of {your} CVEs against all CVEs" sub="Share by CVSS base severity"
       csv={() => SEV.map((s, i) => ({ severity: s.label, your_cves: mineMix[i], all_cves: allMix[i] }))}>
       {#snippet legend()}{#each SEV as s (s.key)}<span><span class="swatch" style:background={SEV_COLOR[s.key]}></span> {s.label}</span>{/each}{/snippet}
       <div class="hbars">
@@ -273,7 +273,7 @@
       </div>
     </Figure>
 
-    <Figure n={21} name="your-cves-epss" title="Exploit probability of {your} CVEs against all CVEs" sub="Share in each EPSS band. Scores are current."
+    <Figure n={19} name="your-cves-epss" title="Exploit probability of {your} CVEs against all CVEs" sub="Share in each EPSS band. Scores are current."
       csv={() => binLabels.map((l, i) => ({ epss_band: l, your_cves: mineBins[i], all_cves: allBins[i] }))}>
       {#snippet legend()}
         <span><span class="swatch" style:background="var(--vol)"></span> {Your} CVEs</span>
@@ -288,7 +288,7 @@
   </div>
 
   {#if years.length}
-    <Figure n={22} name="your-cves-by-year" title="When {your} CVEs were published" sub="By NVD publication year. Red: since listed as exploited."
+    <Figure n={20} name="your-cves-by-year" title="When {your} CVEs were published" sub="By NVD publication year. Red: since listed as exploited."
       csv={() => years.map((y, i) => ({ year: y, cves: perYear(items)[i], exploited: perYear(items.filter((x) => x.kev))[i] }))}>
       {#snippet legend()}
         <span><span class="swatch" style:background="var(--kev)"></span> Exploited (in KEV)</span>
@@ -304,11 +304,11 @@
 
   {#if products.some((p) => p.value > 1) || weaknesses.some((w) => w.value > 1)}
   <div class="grid-2">
-    <Figure n={23} name="your-cves-products" title="Products with the most CVEs on {yourList}" sub="Most common, up to 12; red: exploited"
+    <Figure n={21} name="your-cves-products" title="Products with the most CVEs on {yourList}" sub="Most common, up to 12; red: exploited"
       csv={() => products.map((p) => ({ product: p.label, cves: p.value, exploited: p.kev }))}>
       {#if products.length}<Rows rows={products} />{:else}<p class="sm">No vendor or product data for these CVEs yet.</p>{/if}
     </Figure>
-    <Figure n={24} name="your-cves-weaknesses" title="Weakness types on {yourList}" sub="Most common CWEs, up to 12; red: exploited"
+    <Figure n={22} name="your-cves-weaknesses" title="Weakness types on {yourList}" sub="Most common CWEs, up to 12; red: exploited"
       csv={() => weaknesses.map((w) => ({ cwe: w.key, name: w.label, cves: w.value, exploited: w.kev }))}>
       {#if weaknesses.length}<Rows rows={weaknesses} />{:else}<p class="sm">No weakness data for these CVEs yet.</p>{/if}
     </Figure>
@@ -368,7 +368,7 @@
   .sm { font-size: 0.75rem; color: var(--ink-3); }
   .overdue { color: var(--kev); }
   td.desc { max-width: 46ch; }
-  .more { margin-top: 0.9rem; font-weight: 600; }
+  .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   .hbars { display: grid; gap: 1.1rem; }
   .hrow { display: grid; grid-template-columns: 8rem 1fr; gap: 1rem; align-items: center; }
   .hl { display: grid; font-size: 0.875rem; }

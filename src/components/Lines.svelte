@@ -33,13 +33,15 @@
     hover = i >= 0 && i < labels.length ? i : -1
   }
   function key(e: KeyboardEvent) {
-    if (e.key === 'ArrowRight') hover = Math.min(labels.length - 1, hover + 1)
+    if (e.key === 'ArrowRight') hover = Math.min(labels.length - 1, (hover < 0 ? labels.length - 2 : hover) + 1)
     else if (e.key === 'ArrowLeft') hover = Math.max(0, (hover < 0 ? labels.length : hover) - 1)
     else return
     e.preventDefault()
   }
   const tipLeft = $derived(hover < 0 ? 0 : Math.min(Math.max(x(hover), 90), width - 90))
   const tipLines = $derived(lines.filter((l) => l.tone !== 'faint' && hover >= 0 && l.values[hover] != null))
+  // one live region that always exists, so a screen reader hears each step; the drawn tip is hidden from it
+  const tipText = $derived(tipLines.length ? `${labels[hover]}: ${tipLines.map((l) => `${l.label} ${num(l.values[hover] as number)}`).join(', ')}` : '')
 </script>
 
 <div class="lines" bind:clientWidth={width} style:height="{height}px">
@@ -67,11 +69,12 @@
     {/each}
   </svg>
   {#if hover >= 0 && tipLines.length}
-    <div class="tip" style:left="{tipLeft}px" data-no-export aria-live="polite">
+    <div class="tip" style:left="{tipLeft}px" data-no-export aria-hidden="true">
       <div class="t">{labels[hover]}</div>
       {#each tipLines as l (l.key)}<div class="row"><span>{l.label}</span><b>{num(l.values[hover] as number)}</b></div>{/each}
     </div>
   {/if}
+  <p class="sr-only" aria-live="polite" data-no-export>{tipText}</p>
 </div>
 
 <style>
@@ -81,7 +84,7 @@
   .grid.base { stroke: var(--rule-strong); }
   .axis { fill: var(--ink-3); font: 400 11px var(--sans); font-variant-numeric: tabular-nums; }
   .cross { stroke: var(--ink-3); stroke-dasharray: 2 3; }
-  .ln { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .ln { fill: none; stroke-linejoin: round; stroke-linecap: square; }
   .ln.focus { stroke: var(--vol); stroke-width: 2.75; stroke-dasharray: 3000; animation: draw 1.1s var(--ease-out) both; }
   .ln.prior { stroke: var(--line-strong); stroke-width: 1.5; }
   .ln.faint { stroke: var(--rule); stroke-width: 1; }

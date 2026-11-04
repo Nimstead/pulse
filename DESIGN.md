@@ -254,7 +254,7 @@ Content sits in a single wrap of max 1320px with a fluid gutter of clamp(16px, 3
 
 The Overview opens on a 7:4 grid: the display sentence left, three Summary answers (Volume, Speed, So what) right, each under a 2px rule. Below 1100px the answers go to a three-column row; below 900px everything stacks to one column, including the Pulse band, whose columns switch from left dividers to top dividers. Paired figures use a two-column grid with a gap of clamp(1.5rem, 3vw, 3rem), stacking at 900px. Figure captions stack their actions below 560px.
 
-The tab nav is sticky at the top on Paper with 1px Line borders; under 640px it scrolls horizontally with a 72px fade mask as the scroll hint, and the search and theme controls collapse to 44px square buttons.
+The tab nav is sticky at the top on Paper with 1px Line borders; under 640px it stops being sticky and wraps to two rows so every tab stays visible, and the search and theme controls collapse to 44px square buttons.
 
 Rhythm: figures pad 1rem top, 1.75rem bottom; table rows pad 0.6rem; view heads pad clamp(2rem, 4vw, 3.25rem) top; the notes block opens 3.5rem below the last figure. Every interactive control is at least 2.75rem (44px) tall.
 
@@ -324,10 +324,10 @@ Every analysis view opens with one computed sentence (`.view-head .insight`, the
 KEV bar charts pass `cap` to Bars: the axis stops at 1.4× the 90th percentile, so the KEV launch backlog of 2021–22 cannot flatten recent months. A clipped bar shows a Paper break and its value; on bars narrower than 16px only the tallest is labelled. Captions say so.
 
 ### Example list
-"Your CVEs" offers a fixed example list as its primary action while empty. It is fetched exactly like a pasted list, so it adds no request that could reveal anything.
+"Your CVEs" renders a fixed example list automatically on its first visit in a page load, labelled as a worked example; after Clear the view stays empty and offers "Show the example again". It is fetched exactly like a pasted list, so it adds no request that could reveal anything.
 
 ### Start here (This week)
-A ranked, single-column list under the stats: up to 3 newly exploited, then up to 2 KEV due today, then up to 2 fresh CVEs by EPSS ("Likely target" at EPSS 10% or more, otherwise "Top EPSS this week"). Each row is number, CVE ID (fixed width), name with a facts line (date · severity · EPSS, which wraps rather than truncates) and a reason chip; crimson chips only for KEV rows. "Copy as text" writes a plain brief to the clipboard and nothing else.
+A ranked, single-column list under the stats: every KEV item overdue or due today, then everything newly exploited, then the rest of the KEV deadlines in the window, then the 2 fresh CVEs with the highest EPSS ("Likely target" at EPSS 10% or more, otherwise "Top EPSS this week"). The first 7 rows show, then a linklike "Show all N" toggle. Each row is number, CVE ID (fixed width), reason chip, name with a facts line (date · severity · EPSS) and the deadline in words; crimson chips only for KEV rows. "Copy as text" writes a plain brief of the full list to the clipboard and nothing else; CSV downloads the full list.
 
 ### Pulse band lines
 Each figure's line compares with its previous 12-month average. The published figure says "The highest month on record." when true and otherwise gives no multiple, so the headline's percentage is the only growth rate on the first screen.

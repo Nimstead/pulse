@@ -8,7 +8,7 @@
   import Period from '../components/Period.svelte'
   import Fn from '../components/Fn.svelte'
   import { copyPng } from '../lib/export'
-  import { ui } from '../lib/state.svelte'
+  import { ui, provenance } from '../lib/state.svelte'
   import { num, pct, dateShort, kvp, monthLong, monthShort, ymMinus, median, sum, delta, titleCase, type Month, type Kev, type Ranked } from '../lib/data'
   import { LAG_BINS, lagBin, yearTick, NO_KEV, BACKFILL, MON } from '../lib/derive'
 
@@ -56,7 +56,7 @@
   let bandStatus = $state('')
   async function copyBand() {
     bandStatus = '…'
-    try { bandStatus = await copyPng(band, 'pulse-summary-' + latest.ym) } catch { bandStatus = 'Failed' }
+    try { bandStatus = await copyPng(band, 'pulse-summary-' + latest.ym, provenance()) } catch { bandStatus = 'Failed' }
     setTimeout(() => (bandStatus = ''), 1800)
   }
 
@@ -138,6 +138,7 @@
     return { base, from: pts[0].ym, to: pts.at(-1)!.ym, labels: pts.map((m) => monthShort(m.ym)), cvesN: pts.map((m) => roll(m.ym, (x) => x.n)), kevN: pts.map((m) => roll(m.ym, (x) => x.kev)), c0, k0, cves: pts.map((m) => (roll(m.ym, (x) => x.n) / c0) * 100), kev: pts.map((m) => (roll(m.ym, (x) => x.kev) / k0) * 100) }
   })
   const newest = $derived(kev.slice(0, 5))
+  const tipMonth = (ym: string) => monthLong(ym) + (partial && ym === months.at(-1)!.ym ? ' (partial)' : '')
 </script>
 
 <div class="summary" bind:this={band}>
@@ -176,7 +177,7 @@
     </div>
   </dl>
 </section>
-<div class="view-period"><Period {months} compact /></div>
+<div class="view-period" data-no-export><Period {months} compact /></div>
 
 <section class="pulse" aria-label="Vital signs for {monthLong(latest.ym)}">
   <div class="sign">
@@ -205,12 +206,12 @@
     csv={() => indexed.labels.map((l, i) => ({ month: l, cves_12mo: indexed.cvesN[i], kev_12mo: indexed.kevN[i] }))}>
     <div class="pair">
       <div>
-        <h3 class="ph">CVEs published, last 12 months <b>{cUp >= 0 ? '+' : ''}{cUp}% in a year</b></h3>
+        <h4 class="ph">CVEs published, last 12 months <b>{cUp >= 0 ? '+' : ''}{cUp}% in a year</b></h4>
         <Lines label="CVEs published, rolling 12 months" labels={indexed.labels} height={220}
           lines={[{ key: 'c', label: num(indexed.cvesN.at(-1)!), values: indexed.cvesN, tone: 'focus', color: 'var(--vol)' }]} />
       </div>
       <div>
-        <h3 class="ph kevh">Added to KEV, last 12 months <b>{kUp >= 0 ? '+' : ''}{kUp}% in a year</b></h3>
+        <h4 class="ph kevh">Added to KEV, last 12 months <b>{kUp >= 0 ? '+' : ''}{kUp}% in a year</b></h4>
         <Lines label="KEV listings, rolling 12 months" labels={indexed.labels} height={220}
           lines={[{ key: 'k', label: num(indexed.kevN.at(-1)!), values: indexed.kevN, tone: 'focus', color: 'var(--kev)' }]} />
       </div>
@@ -232,7 +233,7 @@
   <p class="span"><span>{monthShort(trail[0].ym)}</span><span>{monthShort(latest.ym)}</span></p>
 {/snippet}
 
-<Figure n="1b" name="cves-per-month" title="CVEs published, and new KEV listings, per month" sub="The months in the period set above. Every section shares that period."
+<Figure n="1b" name="cves-per-month" title="CVEs published, and new KEV listings, per month" sub="{monthShort(sel[0].ym)} – {monthShort(sel.at(-1)!.ym)}, the period set above."
   csv={() => sel.map((m) => ({ month: m.ym, published: m.n, later_exploited: m.kevPub, kev_listings: m.kev, rejected: m.rej }))}>
   {#snippet legend()}
     <span><span class="swatch" style:background="var(--vol)"></span> CVEs published</span>
@@ -243,11 +244,11 @@
   <Bars label="Monthly CVEs published" labels={sel.map((m) => m.ym)} height={150} hatchLast={partial && ui.to === months.length - 1}
     mark={record ? { index: sel.findIndex((m) => m.ym === latest.ym), label: `Record: ${num(latest.n)}` } : undefined}
     series={[{ key: 'n', label: 'CVEs published', color: 'var(--vol)', values: sel.map((m) => m.n) }]}
-    tick={(l, i) => yearTick(l, i, sel.length)} tipTitle={monthLong} />
+    tick={(l, i) => yearTick(l, i, sel.length)} tipTitle={tipMonth} />
   <div class="mirror">
     <Bars label="Monthly KEV listings" labels={sel.map((m) => m.ym)} height={92} hatchLast={partial && ui.to === months.length - 1}
       series={[{ key: 'kev', label: 'Added to KEV', color: 'var(--kev)', values: sel.map((m) => m.kev) }]}
-      tick={() => null} tipTitle={monthLong} empty={NO_KEV} cap shade={BACKFILL} />
+      tick={() => null} tipTitle={tipMonth} empty={NO_KEV} cap shade={BACKFILL} />
   </div>
   {#snippet notes()}
     Upper panel: CVEs by NVD publication month. Lower panel, on its own scale: KEV listings by the month CISA added them. The two scales differ by about three orders of magnitude because almost every CVE is never exploited in a way CISA can confirm. A KEV bar with a break is taller than its axis; hover or step to it for its value.
@@ -283,7 +284,7 @@
         <button class="linklike mono-id" onclick={() => openCve(k.id)}>{k.id}</button>
         <span class="v">{kvp(k.vendor, k.product)}</span>
         <span class="d">Added {dateShort(k.added)}{k.lag != null ? ` · ${k.lag <= 0 ? 'zero-day' : `${num(k.lag)} day${k.lag === 1 ? '' : 's'} after publication`}` : ''}</span>
-        {#if k.ransom}<span class="chip red">Ransomware</span>{/if}
+        {#if k.ransom}<span class="chip red">Ransomware use known</span>{/if}
       </li>
     {/each}
   </ul>
@@ -294,10 +295,11 @@
 </section>
 
 <style>
-  .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.75rem, 3.5vw, 2.75rem) 0 clamp(1.5rem, 3vw, 2.25rem); }
+  .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.25rem, 2.5vw, 2rem) 0 1rem; }
   .headline { font: 800 clamp(2.25rem, 4.8vw, 4.25rem)/0.94 var(--display); letter-spacing: -0.05em; max-width: 19ch; }
   .headline :global(.fn) { font-size: 0.32em; vertical-align: 1.6em; letter-spacing: 0; }
   mark { background: none; color: var(--kev); }
+  .view-period { margin-bottom: 1.25rem; }
   .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); }
   .ph { font: 600 0.875rem/1.3 var(--sans); color: var(--ink-2); margin: 0 0 0.5rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
   .ph b { font: 800 1.125rem/1.1 var(--display); letter-spacing: -0.02em; color: var(--ink); }
@@ -310,6 +312,8 @@
   .split i.rest { background: var(--shade); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
   .split b { font: 700 0.75rem/1 var(--sans); }
   .answers { display: grid; gap: 1.1rem; margin: 0; }
+  /* beside the headline the answers set the block's height, so they step down to keep the Pulse band in the first screen */
+  @media (min-width: 1101px) { .answers { gap: 0.85rem; } .answers dd { font-size: 1rem; line-height: 1.45; } .answers div { padding-top: 0.6rem; } }
   .answers div { border-top: 2px solid var(--rule-strong); padding-top: 0.75rem; }
   dt { font: 600 0.6875rem/1.2 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
   dd { margin: 0.45rem 0 0; font-size: 1.125rem; line-height: 1.45; max-width: 40ch; }
@@ -323,7 +327,8 @@
     margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
     --fn: var(--band-fg);
   }
-  .copy { margin-top: 1.25rem; font: 700 0.875rem/1.1 var(--sans); padding: 0.75rem 1.1rem; background: var(--ink); color: var(--paper); border: 2px solid var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }
+  .pulse :focus-visible { outline-color: var(--band-fg); } /* an Ink ring would vanish on the band */
+  .copy { margin-top: 1.25rem; font: 700 0.875rem/1.1 var(--sans); padding: 0.75rem 1.1rem; min-height: 2.75rem; background: var(--ink); color: var(--paper); border: 2px solid var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }
   .copy:hover { background: var(--paper); color: var(--ink); }
   .sign { display: flex; flex-direction: column; padding: 0 clamp(1rem, 2.5vw, 2.25rem); border-left: 1px solid var(--band-line); min-width: 0; }
   .sign:first-of-type { padding-left: 0; border-left: 0; }
@@ -348,8 +353,11 @@
   .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); margin-top: 1rem; }
   .latest { border-top: 2px solid var(--rule-strong); padding-top: 1.1rem; margin-top: 1.5rem; }
   .latest h2 { font: 700 1.25rem/1.2 var(--display); letter-spacing: -0.02em; }
-  .latest ul { list-style: none; margin: 0.8rem 0 0; padding: 0; }
-  .latest li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1.25rem; padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
+  .latest ul { list-style: none; margin: 0.8rem 0 0; padding: 0; display: grid; column-gap: 1.25rem; grid-template-columns: 9.5rem minmax(0, 1fr) auto auto; }
+  /* subgrid, so dates and chips line up across rows too */
+  .latest li { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; gap: 0.25rem 1.25rem; padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
+  .latest li .chip { justify-self: start; }
+  @media (max-width: 640px) { .latest ul { grid-template-columns: 8.5rem minmax(0, 1fr); } .latest li > :nth-child(n + 3) { grid-column: 2; } }
   .latest .v { font-weight: 600; }
   .latest .d { color: var(--ink-3); font-size: 0.875rem; }
   .cta { margin-top: 1.25rem; font: 700 0.9375rem/1 var(--sans); padding: 0.95rem 1.35rem; background: var(--ink); color: var(--paper); border: 2px solid var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }

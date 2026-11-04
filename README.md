@@ -45,6 +45,10 @@ The **Your CVEs** view analyses a pasted or uploaded list entirely in the browse
 - The list lives in memory only: no localStorage, URL or hash. Opening a listed CVE's case record uses the in-memory row.
 - Keep it that way: do not add analytics, third-party scripts or per-ID fetches to this view.
 
+## Credit
+
+Pulse was partly [Alex Early](https://www.linkedin.com/in/alexandra-early-619299a0/)'s idea.
+
 ## Licence
 
 The code is under the [MIT licence](LICENSE).

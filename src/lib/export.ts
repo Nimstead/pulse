@@ -1,8 +1,8 @@
 const PROPS = [
   'color', 'background-color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing',
-  'font-variant-numeric', 'text-transform', 'text-align', 'white-space', 'display', 'flex-direction', 'align-items',
+  'font-variant-numeric', 'text-transform', 'text-align', 'white-space', 'display', 'flex-direction', 'flex-wrap', 'align-items',
   'justify-content', 'gap', 'grid-template-columns', 'padding', 'margin', 'border-top', 'border-bottom', 'border-left',
-  'border-right', 'border-radius', 'width', 'height', 'min-width', 'opacity', 'fill', 'stroke', 'stroke-width',
+  'border-right', 'border-radius', 'width', 'height', 'min-width', 'background-image', 'opacity', 'fill', 'stroke', 'stroke-width',
   'stroke-dasharray', 'text-anchor', 'dominant-baseline', 'box-sizing', 'overflow', 'position', 'top', 'left', 'right',
   'bottom', 'transform',
 ]
@@ -13,14 +13,50 @@ function inlineStyles(src: Element, dst: Element) {
   for (let i = 0; i < src.children.length; i++) inlineStyles(src.children[i], dst.children[i])
 }
 
-/** Render a DOM node to PNG via an SVG foreignObject and put it on the clipboard (or download as a fallback). */
-export async function copyPng(node: HTMLElement, name: string) {
-  const { width, height } = node.getBoundingClientRect()
+// an SVG image cannot reach the page's web fonts, so the Latin subsets travel inside it as data URLs
+let fonts: Promise<string> | undefined
+function embedFonts() {
+  const faces = [...document.styleSheets].flatMap((s) => { try { return [...s.cssRules] } catch { return [] } })
+    .filter((r): r is CSSFontFaceRule => r instanceof CSSFontFaceRule && /^U\+0+-0*FF\b/i.test(r.style.getPropertyValue('unicode-range')))
+  return Promise.all(faces.map(async (r) => {
+    const url = r.style.getPropertyValue('src').match(/url\("?([^")]+)"?\)/)?.[1]
+    if (!url) return ''
+    const blob = await (await fetch(url)).blob()
+    const data = await new Promise<string>((res) => { const f = new FileReader(); f.onload = () => res(String(f.result)); f.readAsDataURL(blob) })
+    return `@font-face{font-family:${r.style.getPropertyValue('font-family')};font-weight:${r.style.getPropertyValue('font-weight')};src:url(${data.replace(/^data:[^;]*/, 'data:font/woff2')})}`
+  })).then((css) => css.join(''), () => '')
+}
+
+/** Render a DOM node to PNG via an SVG foreignObject and put it on the clipboard (or download as a fallback). `foot` is a provenance line added below. */
+export async function copyPng(node: HTMLElement, name: string, foot = '') {
+  const { width } = node.getBoundingClientRect()
   const clone = node.cloneNode(true) as HTMLElement
   inlineStyles(node, clone)
-  clone.querySelectorAll('[data-no-export]').forEach((el) => el.remove())
+  // a full-bleed band (border-image outset) is cut to the node's box, so its content gets the page gutter as an inset
+  const gutter = getComputedStyle(node.closest('.wrap') ?? document.body).paddingLeft
+  const copies = clone.querySelectorAll<HTMLElement>('*')
+  node.querySelectorAll('*').forEach((el, i) => { if (getComputedStyle(el).borderImageSource !== 'none') copies[i].style.paddingLeft = copies[i].style.paddingRight = gutter })
+  clone.querySelectorAll<HTMLElement>('[data-no-export]').forEach((el) => {
+    // the inlined heights of everything above an in-flow control would keep its space
+    if (el.style.position !== 'absolute') for (let a = el.parentElement; a; a = a === clone ? null : a.parentElement) a.style.height = 'auto'
+    el.remove()
+  })
+  const root = getComputedStyle(document.documentElement)
+  const wrap = Object.assign(document.createElement('div'), { style: `position:absolute;left:-99999px;top:0;width:${width}px` })
+  wrap.append(clone)
+  if (foot) {
+    const p = Object.assign(document.createElement('p'), { textContent: foot })
+    p.setAttribute('style', `margin:0;padding:8px 0 4px;border-top:1px solid ${root.getPropertyValue('--rule')};font:400 11px/1.4 ${root.getPropertyValue('--sans')};color:${root.getPropertyValue('--ink-3')}`)
+    wrap.append(p)
+  }
+  // measured off screen, so the image fits what is left once controls are gone and the footer has wrapped
+  document.body.append(wrap)
+  const height = Math.ceil(wrap.getBoundingClientRect().height)
+  wrap.remove()
+  const css = await (fonts ??= embedFonts())
   const bg = getComputedStyle(document.body).backgroundColor
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="background:${bg};width:${width}px;height:${height}px">${new XMLSerializer().serializeToString(clone)}</div></foreignObject></svg>`
+  const body = [...wrap.childNodes].map((n) => new XMLSerializer().serializeToString(n)).join('')
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><style>${css}</style><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="background:${bg};width:${width}px;height:${height}px">${body}</div></foreignObject></svg>`
   const img = new Image()
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
   await img.decode()

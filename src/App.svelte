@@ -1,6 +1,6 @@
 <script lang="ts">
   import { load, isoWeek, dateLong, num, type Month, type Kev, type Meta, type Epss, type Ranked } from './lib/data'
-  import { ui, ROUTES } from './lib/state.svelte'
+  import { ui, feed, ROUTES } from './lib/state.svelte'
   import Search from './components/Search.svelte'
   import Sheet from './components/Sheet.svelte'
   import Overview from './views/Overview.svelte'
@@ -22,6 +22,8 @@
     else delete document.documentElement.dataset.theme
     try { theme ? localStorage.setItem('theme', theme) : localStorage.removeItem('theme') } catch {}
   })
+  // another tab switched theme
+  addEventListener('storage', (e) => { if (e.key === 'theme' || e.key === null) theme = e.newValue ?? '' })
   const dark = $derived(theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches))
 
   Promise.all([
@@ -30,6 +32,7 @@
   ]).then(([m, kev, meta, epss, vendors, cwe, recent]) => {
     const months = m.filter((x) => x.ym >= '1999-01')
     data = { months, kev, meta, epss, vendors, cwe, recent }
+    feed.generated = meta.generated.slice(0, 10); feed.months = months.map((x) => x.ym)
     readHash()
   }).catch((e) => (error = String(e.message ?? e)))
 
@@ -99,7 +102,7 @@
   <!-- product lockup: company in ExtraBold, product word in Regular; the seal belongs to the company mark only -->
   <h1><a href="#/overview" onclick={() => go('overview')}><span class="co">Nimstead</span> <span class="prod">Pulse</span></a></h1>
   <div class="tools">
-    <button class="search" onclick={() => (ui.search = true)} aria-keyshortcuts="Control+K Meta+K">
+    <button class="search" onclick={() => (ui.search = true)} aria-label="Search CVEs and vendors" aria-keyshortcuts="Control+K Meta+K">
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.75" /><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" /></svg>
       <span>Search CVEs and vendors</span><kbd>{isMac ? '⌘' : 'Ctrl'} K</kbd>
     </button>
@@ -141,7 +144,7 @@
 </main>
 
 {#if data}
-  <footer class="wrap"><div class="notes" id="notes">
+  <footer class="wrap"><div class="notes" id="notes" tabindex="-1">
     <h2 class="kicker">Sources and notes</h2>
     <ol>
       <li id="note-1"><b>CVEs</b> come from the NVD CVE JSON 2.0 feeds (feed time {data.meta.nvd.slice(0, 16).replace('T', ' ')} UTC) and are counted by NVD publication month. {num(data.meta.rejected)} rejected CVEs are excluded from all counts. The current month is partial and is hatched in charts. The headline trend compares the latest 12 full months with the 12 before; the vendor comparison uses this calendar year so far against all of last year.</li>
@@ -161,15 +164,15 @@
           <li><a href="https://nvd.nist.gov/">NVD</a></li>
           <li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA KEV</a></li>
           <li><a href="https://www.first.org/epss/">FIRST EPSS</a></li>
-          <li><a href="#notes" onclick={(e) => { e.preventDefault(); document.getElementById('notes')?.scrollIntoView() }}>Method notes</a></li>
+          <li><a href="#notes" onclick={(e) => { e.preventDefault(); const n = document.getElementById('notes'); n?.scrollIntoView(); n?.focus({ preventScroll: true }) }}>Method notes</a></li>
         </ul></div>
         <div><h2>Project</h2><ul>
           <li><a href="https://nimstead.systems">Nimstead</a></li>
           <li><a href="https://github.com/Nimstead/pulse">Source on GitHub</a></li>
-          <li><a href="#top" onclick={(e) => { e.preventDefault(); scrollTo({ top: 0 }) }}>Back to top</a></li>
+          <li><a href="#top" onclick={(e) => { e.preventDefault(); scrollTo({ top: 0 }); main.focus({ preventScroll: true }) }}>Back to top</a></li>
         </ul></div>
       </nav>
-      <p class="gen">Generated {data.meta.generated.replace('T', ' ').slice(0, 16)} UTC from public data. Not affiliated with NIST, CISA or FIRST. Code MIT; the Nimstead name and marks are not licensed.</p>
+      <p class="gen">Generated {data.meta.generated.replace('T', ' ').slice(0, 16)} UTC from public data. Pulse was partly <a href="https://www.linkedin.com/in/alexandra-early-619299a0/">Alex Early</a>'s idea. Not affiliated with NIST, CISA or FIRST. Code MIT; the Nimstead name and marks are not licensed.</p>
     </div>
   </div>
   <Search bind:open={ui.search} kev={data.kev} vendors={data.vendors.rows} oncve={openCve} onvendor={openVendor} />
@@ -202,7 +205,8 @@
   .nav a:focus-visible { outline-offset: -2px; } /* the scrolling row would clip an outside ring */
   .skip { position: absolute; left: 1rem; top: -100px; z-index: 30; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-weight: 700; }
   .skip:focus { top: 0.5rem; }
-  main:focus { outline: none; }
+  main:focus, .notes:focus { outline: none; } /* programmatic focus targets */
+  .closing :focus-visible { outline-color: var(--band-fg); } /* an Ink ring would vanish on the band */
   .nav a { flex-shrink: 0; padding: 0.95rem 0 0.85rem; margin-bottom: -1px; text-decoration: none; font-weight: 500; font-size: 0.9375rem; letter-spacing: -0.01em; color: var(--ink-3); border-bottom: 2px solid transparent; transition: color 120ms, border-color 120ms; }
   .nav a:hover { color: var(--ink); border-bottom-color: var(--line-strong); }
   .nav a[aria-current='page'] { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
@@ -218,7 +222,7 @@
   @keyframes pulse { from { height: 20%; } to { height: 100%; } }
   .notes { border-top: 2px solid var(--rule-strong); margin-top: 3.5rem; padding-top: 1.25rem; padding-bottom: 3rem; font-size: 0.8125rem; color: var(--ink-3); }
   .notes ol { columns: 2 22rem; column-gap: 3rem; padding-left: 1.2rem; margin: 1rem 0 0; }
-  .notes li { break-inside: avoid; margin-bottom: 0.7rem; scroll-margin-top: 5rem; padding: 0.15rem 0.3rem; margin-left: -0.3rem; transition: background-color 300ms; }
+  .notes li { max-width: 70ch; text-wrap: pretty; break-inside: avoid; margin-bottom: 0.7rem; scroll-margin-top: 5rem; padding: 0.15rem 0.3rem; margin-left: -0.3rem; transition: background-color 300ms; }
   .notes li::marker { font-weight: 700; color: var(--ink); }
   .notes li:target, .notes li:focus-within { background: var(--shade); }
   .notes b { color: var(--ink); }
@@ -229,8 +233,8 @@
   .links { display: flex; gap: clamp(2rem, 5vw, 4.5rem); }
   .links h2 { font: 600 0.6875rem/1.3 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ash); margin: 0 0 0.6rem; }
   .links ul { list-style: none; margin: 0; padding: 0; }
-  .links a { display: inline-block; padding: 0.3rem 0; font-size: 0.9375rem; color: var(--band-fg); text-decoration: none; border-bottom: 1px solid transparent; }
-  .links a:hover { border-bottom-color: currentColor; }
+  .links a { display: inline-block; padding: 0.625rem 0; font-size: 0.9375rem; line-height: 1.6; color: var(--band-fg); text-decoration: none; } /* 44px tall targets */
+  .links a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
   .gen { grid-column: 1 / -1; padding-top: 1.25rem; border-top: 1px solid var(--band-line); max-width: none; }
   @media (max-width: 640px) { .closing .wrap { grid-template-columns: minmax(0, 1fr); } }
   .mark small { font: 400 0.8125rem/1.2 var(--sans); letter-spacing: 0; color: var(--ash); }
@@ -238,6 +242,8 @@
   .mark .seal { font-size: 1.375rem; }
   .seal { display: inline-block; width: 0.18em; height: 0.18em; background: var(--seal); vertical-align: top; margin: 0.06em 0 0 0.05em; }
   .gen { margin: 0; font-size: 0.8125rem; color: var(--ash); }
+  .gen a { display: inline-block; padding: 0.75rem 0; margin: -0.75rem 0; color: var(--band-fg); text-decoration: underline; text-decoration-thickness: 1px; } /* a 44px target inside a line of small print */
+  .gen a:hover { text-decoration-thickness: 2px; }
   @media (max-width: 640px) {
     .search span, .search kbd { display: none; }
     .search { width: 2.75rem; padding: 0; justify-content: center; color: var(--ink); }

@@ -20,11 +20,12 @@
   const prevKevN = $derived(kev.filter((k) => k.added < since && k.added >= addDays(since, -windowDays)).length)
   const overdue = $derived(kev.filter((k) => k.due && k.due < today && k.due >= addDays(today, -windowDays)).sort((a, b) => b.due.localeCompare(a.due))) // most recently missed first
   const dueSoon = $derived(kev.filter((k) => k.due && k.due >= today && k.due <= addDays(today, windowDays)).sort((a, b) => a.due.localeCompare(b.due)))
+  const todayN = $derived(dueSoon.filter((k) => k.due === today).length)
   // triage order: newly exploited, then KEV due today, then fresh Critical/High with EPSS of 10% or more
   const start = $derived.by(() => {
     const out: { id: string; what: string; why: string; facts: string; red: boolean; due: string; late: boolean }[] = [], seen = new Set<string>()
     const add = (x: (typeof out)[number]) => { if (!seen.has(x.id)) { seen.add(x.id); out.push(x) } }
-    const sev = (s: string, n: number | null) => (s ? `${titleCase(s.toLowerCase())}${n != null ? ` ${n}` : ''}` : 'Not scored')
+    const sev = (s: string, n: number | null) => (s ? `${titleCase(s.toLowerCase())}${n != null ? ` ${n.toFixed(1)}` : ''}` : 'Not scored')
     const kevFacts = (k: Kev) => [k.due ? `Due ${dateShort(k.due)}` : '', sev(k.sev, k.score), k.epss != null ? `EPSS ${epssPct(k.epss)}` : ''].filter(Boolean).join(' · ')
     const isNew = new Set(newKev.map((k) => k.id))
     // the deadline in words, so a row is scannable without reading its facts line
@@ -34,11 +35,14 @@
     for (const k of overdue) add(kevRow(k, 'Overdue'))
     for (const k of dueSoon) if (k.due === today) add(kevRow(k, isNew.has(k.id) ? 'Due today' : 'KEV due today'))
     for (const k of newKev) add(kevRow(k, ''))
-    for (const k of dueSoon) add(kevRow(k, `Due in ${daysBetween(today, k.due)} day${daysBetween(today, k.due) === 1 ? '' : 's'}`))
+    for (const k of dueSoon) add(kevRow(k, 'KEV deadline')) // the deadline column already says when
     // nothing fresh may have reached EPSS 10% yet; then the highest-scoring fresh CVEs still lead the list
     for (const r of (likely.length ? likely : hot).slice(0, 2)) add({ id: r[0], what: vp(r[6], r[7]), why: likely.length ? 'Likely target' : 'Top EPSS this week', facts: `Published ${dateShort(r[1])} · ${sev(r[4], r[3])} · EPSS ${epssPct(r[8]!)}`, red: false, due: 'No KEV deadline', late: false })
     return out
   })
+  // the list stays scannable, but never hides an overdue or due-today item; Copy as text and CSV still carry all of it
+  const SHOW = $derived(Math.max(7, overdue.length + todayN))
+  let all = $state(false)
   let copied = $state('')
   async function brief() {
     const lines = [`Nimstead Pulse · last ${windowDays} days to ${dateShort(today)}`, '',
@@ -47,7 +51,6 @@
     try { await navigator.clipboard.writeText(lines.join('\n')); copied = 'Copied' } catch { copied = 'Copy failed' }
     setTimeout(() => (copied = ''), 1800)
   }
-  const todayN = $derived(dueSoon.filter((k) => k.due === today).length)
   const days = $derived(recent.days.filter(([d]) => d >= addDays(recent.latest, -windowDays + 1)))
   const pubN = $derived(days.reduce((a, d) => a + d[1], 0))
   const scoredN = $derived(days.reduce((a, d) => a + d[2], 0))
@@ -80,18 +83,18 @@
 <div class="tiles">
   <div><div class="kicker">New KEV listings</div><div class="big red">{num(newKev.length)}</div><div class="cmp"><b>{num(prevKevN)}</b> the {windowDays} days before{newKev.some((k) => k.ransom) ? ` · ${newKev.filter((k) => k.ransom).length} with ransomware use` : ''}</div></div>
   <div><div class="kicker">KEV due today</div><div class="big" class:red={todayN > 0}>{num(todayN)}</div><div class="cmp">US federal deadlines falling today</div></div>
-  <div><div class="kicker">KEV deadlines, next {windowDays} days</div><div class="big">{num(dueSoon.length)}</div><div class="cmp">Including today's; {num(overdue.length)} passed in the last {windowDays} days</div></div>
-  <div><div class="kicker">Fresh likely targets</div><div class="big" class:red={likely.length > 0}>{num(likely.length)}</div><div class="cmp">EPSS 10% or more, of {num(severeN)} new Critical or High{#if prevSevereN != null}{' '}({num(prevSevereN)} the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); document.getElementById('fresh')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></div></div>
+  <div><div class="kicker">KEV deadlines, next {windowDays} days</div><div class="big">{num(dueSoon.length)}</div><div class="cmp">Including today's. {num(overdue.length)} passed in the last {windowDays} days.</div></div>
+  <div><div class="kicker">Fresh likely targets</div><div class="big">{num(likely.length)}</div><div class="cmp">EPSS 10% or more, of {num(severeN)} new Critical or High{#if prevSevereN != null}{' '}({num(prevSevereN)} the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); document.getElementById('fresh')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></div></div>
 </div>
 
 {#if start.length}
   <section class="start" aria-labelledby="start-h">
     <div class="start-head">
-      <div><h2 id="start-h">Start here</h2><p class="rank">Every KEV item overdue or due today, then everything newly exploited, then the rest due in the next {windowDays} days, then the 2 fresh CVEs with the highest EPSS.</p></div>
+      <div><h3 id="start-h">Start here</h3><p class="rank">Every KEV item overdue or due today, then everything newly exploited, then the rest due in the next {windowDays} days, then the 2 fresh CVEs with the highest EPSS.</p></div>
       <span class="acts"><button class="copytext" onclick={brief}>{copied || 'Copy as text'}</button><button class="copytext" onclick={() => downloadCsv(start.map((x, i) => ({ rank: i + 1, cve: x.id, product: x.what, status: x.why, deadline: x.due, facts: x.facts })), 'start-here')}>CSV</button></span>
     </div>
     <ol>
-      {#each start as x, i (x.id)}
+      {#each all ? start : start.slice(0, SHOW) as x, i (x.id)}
         <li>
           <span class="n">{i + 1}</span>
           <button class="linklike mono-id" onclick={() => openCve(x.id)}>{x.id}</button>
@@ -101,6 +104,7 @@
         </li>
       {/each}
     </ol>
+    {#if start.length > SHOW}<button class="linklike more" aria-expanded={all} onclick={() => (all = !all)}>{all ? `Show the first ${SHOW}` : `Show all ${num(start.length)}`}</button>{/if}
   </section>
 {/if}
 
@@ -119,7 +123,7 @@
             <td><b>{g.name}</b></td>
             <td class="r">{num(g.rows.length)}</td>
             <td><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{dateShort(r[1])}</div></td>
-            <td><span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())} {r[3]}</span></td>
+            <td><span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span></td>
             <td class="r">{r[8] == null ? '—' : epssPct(r[8])}</td>
           </tr>
         {/each}
@@ -137,7 +141,7 @@
 
 <style>
   .toggle { display: inline-flex; border: 2px solid var(--ink); overflow: hidden; margin-bottom: 1.5rem; }
-  .toggle button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.55rem 0.95rem; font: 700 0.8125rem var(--sans); color: var(--ink-2); cursor: pointer; }
+  .toggle button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.55rem 0.95rem; min-height: 2.75rem; font: 700 0.8125rem var(--sans); color: var(--ink-2); cursor: pointer; }
   .toggle button:first-child { border-left: 0; }
   .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
   .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1rem, 3vw, 3rem); margin-bottom: 1.5rem; }
@@ -149,10 +153,11 @@
   .tiles .cmp b { font-weight: 800; color: var(--ink); }
   .anchor { scroll-margin-top: 4rem; }
   .start { border-top: 2px solid var(--rule-strong); padding-top: 1rem; margin-bottom: 2rem; }
-  .start-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  .start-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
+  .start-head > div { flex: 1 1 20rem; }
   .start .rank { margin: 0.2rem 0 0; font-size: 0.875rem; color: var(--ink-3); }
-  .start h2 { font: 700 1.25rem/1.2 var(--display); letter-spacing: -0.02em; }
-  .copytext { background: var(--paper); border: 2px solid var(--ink); padding: 0.5rem 0.85rem; font: 700 0.8125rem/1.1 var(--sans); color: var(--ink); cursor: pointer; min-width: 7.5rem; transition: background-color 150ms, color 150ms; }
+  .start h3 { font: 700 1.25rem/1.2 var(--display); letter-spacing: -0.02em; }
+  .copytext { background: var(--paper); border: 2px solid var(--ink); padding: 0.5rem 0.85rem; min-height: 2.75rem; font: 700 0.8125rem/1.1 var(--sans); color: var(--ink); cursor: pointer; min-width: 7.5rem; transition: background-color 150ms, color 150ms; }
   .acts { display: inline-flex; gap: 0.5rem; }
   .copytext:hover { background: var(--ink); color: var(--paper); }
   .start ol { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; }
@@ -167,6 +172,7 @@
   .start .what small { font-weight: 400; font-size: 0.8125rem; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; }
   @media (max-width: 900px) { .start li { grid-template-columns: 1.5rem minmax(0, 1fr); } .start li > :nth-child(n + 3) { grid-column: 2; justify-self: start; } }
   .sm { font-size: 0.75rem; color: var(--ink-3); }
+  .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 720px) { .tiles { grid-template-columns: 1fr; } }
 </style>

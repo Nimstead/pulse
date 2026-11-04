@@ -83,6 +83,9 @@
     else return
     e.preventDefault()
   }
+  const shownValue = (s: Series, i: number) => (normalize ? `${Math.round(value(s, i) * 100)}%` : format(s.values[i] || 0))
+  // one live region that always exists, so a screen reader hears each step; the drawn tip is hidden from it
+  const tipText = $derived(hover < 0 || isEmpty ? '' : `${tipTitle(labels[hover], hover)}: ${series.map((s) => `${s.label} ${shownValue(s, hover)}`).join(', ')}${stacked && series.length > 1 && !normalize ? `, total ${format(totals[hover])}` : ''}`)
   const tipLeft = $derived(hover < 0 ? 0 : Math.min(Math.max(ml + hover * bw + bw / 2, 90), width - 90))
 </script>
 
@@ -147,14 +150,15 @@
   </svg>
   {#if isEmpty}<p class="empty">{empty}</p>{/if}
   {#if hover >= 0 && !isEmpty}
-    <div class="tip" style:left="{tipLeft}px" data-no-export aria-live="polite">
+    <div class="tip" style:left="{tipLeft}px" data-no-export aria-hidden="true">
       <div class="t">{tipTitle(labels[hover], hover)}</div>
       {#each series as s (s.key)}
-        <div class="row"><span class="swatch" style:background={s.color}></span>{s.label}<b>{normalize ? `${Math.round(value(s, hover) * 100)}%` : format(s.values[hover] || 0)}</b></div>
+        <div class="row"><span class="swatch" style:background={s.color}></span>{s.label}<b>{shownValue(s, hover)}</b></div>
       {/each}
       {#if stacked && series.length > 1 && !normalize}<div class="row total">Total<b>{format(totals[hover])}</b></div>{/if}
     </div>
   {/if}
+  <p class="sr-only" aria-live="polite" data-no-export>{tipText}</p>
 </div>
 
 <style>

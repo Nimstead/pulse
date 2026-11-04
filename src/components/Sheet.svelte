@@ -49,7 +49,7 @@
       <div>
         <h2 id="sheet-title">{id}</h2>
       </div>
-      <button class="x" onclick={close} aria-label="Close"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg></button>
+      <button class="x" onclick={close} aria-label="Close"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" /></svg></button>
     </header>
 
     {#if row === undefined && !kev}
@@ -62,9 +62,9 @@
       <div class="chips">
         {#if kev}<span class="chip solid-red">Exploited · in KEV</span>{/if}
         {#if kev?.ransom}<span class="chip red">Ransomware use known</span>{/if}
-        {#if row?.[4]}<span class="chip" style:border-color={SEV_COLOR[row[4]]}><span class="swatch" style:background={SEV_COLOR[row[4]]}></span>{titleCase(row[4].toLowerCase())} {row[3]}</span>
+        {#if row?.[4]}<span class="chip" style:border-color={SEV_COLOR[row[4]]}><span class="swatch" style:background={SEV_COLOR[row[4]]}></span>{titleCase(row[4].toLowerCase())}{row[3] != null ? ` ${row[3].toFixed(1)}` : ''}</span>
         {:else if row}<span class="chip">Not scored yet</span>{/if}
-        {#if row?.[2]}<span class="chip">{row[2]}</span>{/if}
+        {#if row?.[2]}<span class="chip">NVD: {row[2]}</span>{/if}
       </div>
 
       {#if kev?.name}<p class="name">{kev.name}</p>{/if}
@@ -73,7 +73,7 @@
       <dl class="facts">
         <div><dt>Vendor</dt><dd>{kev?.vendor || titleCase(row?.[6] || '—')}</dd></div>
         <div><dt>Product</dt><dd>{kev?.product || titleCase(row?.[7] || '—')}</dd></div>
-        <div><dt>Weakness</dt><dd>{#if row?.[5] || kev?.cwe}{@const w = (row?.[5] || kev?.cwe)!}{cweNames[w] ?? w}{#if cweNames[w]}&nbsp;<span class="muted">{w}</span>{/if}{:else}—{/if}</dd></div>
+        <div><dt>Weakness</dt><dd>{#if row?.[5] || kev?.cwe}{@const w = (row?.[5] || kev?.cwe)!}{cweNames[w] ?? w}{#if cweNames[w]}&nbsp;<span class="muted cwe">{w}</span>{/if}{:else}—{/if}</dd></div>
         <div><dt>EPSS</dt><dd>{#if (row?.[8] ?? kev?.epss) != null}{epssPct((row?.[8] ?? kev?.epss) as number)} <span class="muted">chance of exploitation activity in 30 days</span>{:else}—{/if}</dd></div>
       </dl>
 
@@ -126,6 +126,7 @@
   dt { font: 600 0.6875rem/1.3 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
   dd { margin: 0.15rem 0 0; font-weight: 600; }
   .muted { color: var(--ink-3); font-weight: 400; font-size: 0.875rem; }
+  .cwe { white-space: nowrap; }
   .meter { height: 6px; background: var(--shade); overflow: hidden; margin-bottom: 1.75rem; }
   .meter i { display: block; height: 100%; background: var(--ink); }
   h3.kicker { margin: 0.5rem 0 0.75rem; }
@@ -137,6 +138,7 @@
   .d { font-weight: 800; letter-spacing: -0.01em; }
   .l { color: var(--ink-2); }
   .n { font-size: 0.8rem; color: var(--ink-3); }
-  .links { display: flex; gap: 1.25rem; flex-wrap: wrap; margin: 0 0 1.5rem; font-weight: 600; }
+  .links { display: flex; gap: 0 1.25rem; flex-wrap: wrap; margin: 0 0 1.5rem; font-weight: 600; }
+  .links a { display: inline-flex; align-items: center; gap: 0.3em; min-height: 2.75rem; }
   @media (prefers-reduced-motion: reduce) { dialog { transition: opacity 200ms; } @starting-style { dialog[open] { transform: none; opacity: 0; } } dialog.closing { transform: none; opacity: 0; } }
 </style>
