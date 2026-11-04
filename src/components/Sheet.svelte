@@ -111,7 +111,7 @@
   dialog::backdrop { background: rgb(17 17 17 / 0.5); transition: opacity 300ms; }
   @starting-style { dialog[open]::backdrop { opacity: 0; } }
   dialog.closing::backdrop { opacity: 0; }
-  .panel { padding: 1.5rem clamp(1.25rem, 4vw, 2rem) 2.5rem; overflow-y: auto; height: 100%; }
+  .panel { padding: 1.5rem clamp(1.25rem, 4vw, 2rem) 2.5rem; overflow-y: auto; overscroll-behavior: contain; overflow-wrap: anywhere; height: 100%; }
   header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; border-bottom: 2px solid var(--rule-strong); padding-bottom: 1rem; }
   h2 { font: 800 clamp(1.9rem, 5vw, 2.6rem)/1 var(--display); letter-spacing: -0.05em; margin-top: 0.25rem; overflow-wrap: anywhere; }
   .x { background: var(--paper); border: 1px solid var(--line-strong); width: 2.75rem; height: 2.75rem; flex-shrink: 0; display: grid; place-items: center; cursor: pointer; color: var(--ink); transition: background-color 150ms, color 150ms; }

@@ -309,7 +309,7 @@ Label-styled headers over a 2px Ink rule, 1px Line row dividers, Concrete row ho
 - **Caret** is Ink.
 
 ### Navigation
-An Ink topbar carries the issue line (series name, Vol., No., issued date; sources at right) in 500 0.6875rem uppercase with 0.12em tracking in Ash. The masthead holds the "Nimstead Pulse" lockup ("Nimstead" 800, "Pulse" 400, tracked -0.045em) with search and theme at right. The sticky tab nav sets tabs at 500 0.9375rem in Muted; hover shows a 2px Line Strong underline, the current tab is Ink 700 with a 2px Ink underline.
+An Ink topbar carries the issue line (series name, Vol., No., issued date; sources at right) in 500 0.6875rem uppercase with 0.12em tracking in Ash. The masthead holds the "Nimstead Pulse" lockup ("Nimstead" 800, "Pulse" 400, tracked -0.045em, no seal: only the company wordmark carries it) with search and theme at right. The closing band uses the endorsed lockup instead: "Pulse" 800 at display size over "a Nimstead■ product", the seal on Nimstead. The sticky tab nav sets tabs at 500 0.9375rem in Muted; hover shows a 2px Line Strong underline, the current tab is Ink 700 with a 2px Ink underline.
 
 ### Pulse band (signature)
 The Overview's full-bleed Ink band of three vital signs: CVEs published, newly exploited (KEV) and median days to KEV for the latest month. Each column has a Label in Ash, a huge Numeral in Band Foreground (the exploited numeral carries the Seal square), a comparison line in Ash and a 44px 24-month trace drawn in Band Foreground (Band Crimson for the exploited trace) with a square end marker. Columns divide with 1px Band Line. Traces draw on once on entry over 1.4s ease-out-expo.

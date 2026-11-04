@@ -8,6 +8,7 @@
 
 <style>
   .fn { font-size: 0.62em; line-height: 0; margin-left: 0.08em; }
-  button { background: none; border: 0; padding: 0 0.1em; color: var(--fn, var(--ink)); font: 700 1em var(--sans); cursor: pointer; }
+  button { position: relative; background: none; border: 0; padding: 0 0.1em; color: var(--fn, var(--ink)); font: 700 1em var(--sans); cursor: pointer; }
+  button::after { content: ''; position: absolute; inset: -0.6rem -0.5rem; } /* 24px hit area without moving the text */
   button:hover { text-decoration: underline; }
 </style>

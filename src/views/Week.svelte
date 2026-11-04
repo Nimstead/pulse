@@ -108,7 +108,8 @@
 <div id="fresh" class="anchor"></div>
 <Figure n={15} name="recent-critical" title="Fresh Critical and High CVEs, by product" sub="Published in the last {windowDays} days: one row per product, ranked by its highest EPSS. {likely.length ? `${num(likely.length)} have reached EPSS 10%.` : 'None has reached EPSS 10% yet, so nothing fresh stands out.'}"
   csv={() => hot.map((r) => ({ cve: r[0], published: r[1], severity: r[4], score: r[3], vendor: r[6], product: r[7], epss: r[8] }))}>
-  <div class="table-scroll">
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
     <table class="data">
       <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th>Highest</th><th>Severity</th><th class="r">EPSS</th></tr></thead>
       <tbody>

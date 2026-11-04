@@ -52,8 +52,9 @@
       aria-label="Search CVEs and vendors" role="combobox" aria-expanded="true" aria-controls="search-hits" aria-activedescendant="hit-{active}" autocomplete="off" spellcheck="false" />
     <ul id="search-hits" role="listbox">
       {#each hits as h, i (h.kind + h.key)}
+        <!-- svelte-ignore a11y_click_events_have_key_events (keys are handled on the combobox input) -->
         <li id="hit-{i}" role="option" aria-selected={i === active} class:active={i === active}
-          onpointerdown={(e) => { e.preventDefault(); choose(h) }} onpointerenter={() => (active = i)}>
+          onpointerdown={(e) => e.preventDefault()} onclick={() => choose(h)} onpointerenter={() => (active = i)}>
           <span class="t">{h.title}</span><span class="s">{h.sub}</span>
         </li>
       {:else}
@@ -73,7 +74,8 @@
   @starting-style { dialog[open] { transform: scale(0.96) translateY(-6px); opacity: 0; } }
   dialog::backdrop { background: rgb(17 17 17 / 0.5); }
   input { width: 100%; border: 0; border-bottom: 1px solid var(--rule); background: transparent; padding: 1.15rem 1.2rem; font: 500 1.125rem var(--sans); color: var(--ink); outline: none; }
-  ul { list-style: none; margin: 0; padding: 0.35rem; max-height: 50vh; overflow-y: auto; }
+  input:focus-visible { box-shadow: inset 0 -2px var(--ink); }
+  ul { list-style: none; margin: 0; padding: 0.35rem; max-height: 50vh; overflow-y: auto; overscroll-behavior: contain; }
   li { display: grid; padding: 0.6rem 0.8rem; cursor: pointer; }
   li.active { background: var(--ink); color: var(--paper); }
   li.active .s { color: color-mix(in srgb, var(--paper) 75%, var(--ink)); }

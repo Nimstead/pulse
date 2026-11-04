@@ -82,7 +82,8 @@
 
 <Figure n={10} name="epss-watchlist" title="Watchlist: high EPSS, not yet in KEV" sub="Every row is a likely target (EPSS 10% or more, no KEV listing yet), one row per product, ranked by its highest EPSS. The {num(watch.length)} CVEs published {monthShort(a)} to {monthShort(b)} among the 300 highest-EPSS CVEs not in KEV ({num(epss.watchTotal)} score 10% or more overall)."
   csv={() => watch.map((w) => ({ cve: w.id, epss: w.epss, percentile: w.pct, vendor: w.vendor, product: w.product, severity: w.sev, score: w.score, published: w.pub }))}>
-  <div class="table-scroll">
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
     <table class="data">
       <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th>Highest</th><th>Severity</th><th class="r">Age</th><th class="r">EPSS</th></tr></thead>
       <tbody>

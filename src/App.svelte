@@ -62,7 +62,12 @@
     if (location.hash !== next) history.replaceState(null, '', next)
   })
 
+  let main: HTMLElement
+  $effect(() => { document.title = `${ROUTES.find((r) => r.id === ui.route)?.label ?? 'Overview'} · Nimstead Pulse` })
+
   function go(route: string) {
+    // a section change is a real history step (Back returns to it); the effect above then rewrites the new top entry
+    if (route !== ui.route) { history.pushState(null, '', location.href); main?.focus({ preventScroll: true }) }
     ui.route = route
     scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }
@@ -71,12 +76,15 @@
 
   function onkey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); ui.search = true }
-    else if (e.key === '/' && !(e.target instanceof HTMLInputElement)) { e.preventDefault(); ui.search = true }
+    else if (e.key === '/' && !(e.target as Element).closest?.('input, textarea, select, [contenteditable]')) { e.preventDefault(); ui.search = true }
   }
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
 </script>
 
 <svelte:window onkeydown={onkey} />
+
+<!-- not href="#main": the hash is the router -->
+<a class="skip" href="#main" onclick={(e) => { e.preventDefault(); main.focus() }}>Skip to content</a>
 
 <div class="topbar">
   <div class="wrap issue">
@@ -89,7 +97,7 @@
 
 <header class="wrap masthead">
   <!-- product lockup: company in ExtraBold, product word in Regular; the seal belongs to the company mark only -->
-  <h1><a href="#/overview" onclick={() => go('overview')}><span class="co">Nimstead<i class="seal" aria-hidden="true"></i></span> <span class="prod">Pulse</span></a></h1>
+  <h1><a href="#/overview" onclick={() => go('overview')}><span class="co">Nimstead</span> <span class="prod">Pulse</span></a></h1>
   <div class="tools">
     <button class="search" onclick={() => (ui.search = true)} aria-keyshortcuts="Control+K Meta+K">
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.75" /><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" /></svg>
@@ -105,12 +113,12 @@
 <nav class="nav" aria-label="Sections">
   <div class="wrap">
     {#each ROUTES as r (r.id)}
-      <a href="#/{r.id}" aria-current={ui.route === r.id ? 'page' : undefined} onclick={(e) => { e.preventDefault(); go(r.id) }}>{r.label}</a>
+      <a href="#/{r.id}" aria-current={ui.route === r.id ? 'page' : undefined} onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go(r.id) }}>{r.label}</a>
     {/each}
   </div>
 </nav>
 
-<main class="wrap">
+<main class="wrap" id="main" tabindex="-1" bind:this={main}>
   {#if error}
     <div class="error" role="alert">
       <h2>The data files could not be loaded.</h2>
@@ -146,7 +154,8 @@
   </div></footer>
   <div class="closing">
     <div class="wrap">
-      <p class="mark"><span class="co">Nimstead<i class="seal" aria-hidden="true"></i></span> <span class="prod">Pulse</span></p>
+      <!-- endorsed lockup: the product is the hero here, so Nimstead and its seal step down to the endorsement -->
+      <p class="mark">Pulse<small>a <b>Nimstead<i class="seal" aria-hidden="true"></i></b> product</small></p>
       <p class="gen">Generated {data.meta.generated.replace('T', ' ').slice(0, 16)} UTC from public data. Every figure cites its source above. Not affiliated with NIST, CISA or FIRST.</p>
     </div>
   </div>
@@ -175,7 +184,12 @@
   .theme { width: 2.75rem; padding: 0; justify-content: center; color: var(--ink); }
   .nav { position: sticky; top: 0; z-index: 20; background: var(--chrome); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
   .nav .wrap { display: flex; gap: 0.25rem 2rem; overflow-x: auto; scrollbar-width: none; }
-  @media (max-width: 640px) { .nav .wrap { flex-wrap: wrap; gap: 0 1.1rem; } .nav a { padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } } /* every tab stays visible on a phone */
+  /* every tab stays visible on a phone; two wrapped rows are too tall to pin */
+  @media (max-width: 640px) { .nav { position: static; } .nav .wrap { flex-wrap: wrap; gap: 0 1.1rem; } .nav a { padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
+  .nav a:focus-visible { outline-offset: -2px; } /* the scrolling row would clip an outside ring */
+  .skip { position: absolute; left: 1rem; top: -100px; z-index: 30; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-weight: 700; }
+  .skip:focus { top: 0.5rem; }
+  main:focus { outline: none; }
   .nav a { flex-shrink: 0; padding: 0.95rem 0 0.85rem; margin-bottom: -1px; text-decoration: none; font-weight: 500; font-size: 0.9375rem; letter-spacing: -0.01em; color: var(--ink-3); border-bottom: 2px solid transparent; transition: color 120ms, border-color 120ms; }
   .nav a:hover { color: var(--ink); border-bottom-color: var(--line-strong); }
   .nav a[aria-current='page'] { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
@@ -197,7 +211,10 @@
   .notes b { color: var(--ink); }
   .closing { background: var(--band); color: var(--band-fg); padding: clamp(2.5rem, 6vw, 4.5rem) 0 2.5rem; }
   .closing .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1.5rem 3rem; }
-  .mark { margin: 0; font: 400 clamp(2.5rem, 7vw, 5rem)/0.86 var(--display); letter-spacing: -0.055em; }
+  .mark { margin: 0; display: grid; gap: 0.75rem; font: 800 clamp(2.5rem, 7vw, 5rem)/0.86 var(--display); letter-spacing: -0.055em; }
+  .mark small { font: 400 0.8125rem/1.2 var(--sans); letter-spacing: 0; color: var(--ash); }
+  .mark b { font-weight: 800; letter-spacing: -0.03em; color: var(--band-fg); }
+  .mark .seal { font-size: 1.375rem; }
   .seal { display: inline-block; width: 0.18em; height: 0.18em; background: var(--seal); vertical-align: top; margin: 0.06em 0 0 0.05em; }
   .gen { margin: 0; max-width: 46ch; font-size: 0.8125rem; color: var(--ash); }
   @media (max-width: 640px) {

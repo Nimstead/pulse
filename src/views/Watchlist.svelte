@@ -86,8 +86,10 @@
       shown = 50
     } catch (e) { err = String((e as Error).message ?? e) } finally { busy = false }
   }
+  let undo = $state<typeof watch | null>(null) // the list lives only in memory, so Clear keeps one undo step
   function clear() {
     cancelDescs()
+    undo = watch.example && !watch.text ? null : { ...watch, dl: { running: false, done: 0, total: 0, error: '' } }
     Object.assign(watch, { text: '', ids: [], items: [], missing: [], rejected: [], desc: {}, descFor: '', dl: { running: false, done: 0, total: 0, error: '' }, example: false })
     err = ''
   }
@@ -159,7 +161,10 @@
       ondragover={(e) => { e.preventDefault(); dragging = true }} ondragleave={() => (dragging = false)}
       ondrop={(e) => { e.preventDefault(); dragging = false; readFiles(e.dataTransfer?.files) }}></textarea>
     <div class="actions">
-      {#if !watch.text && !n}<button class="btn" onclick={example}>Show the example again</button>{/if}
+      {#if !watch.text && !n}
+        {#if undo}<button class="btn" onclick={() => { Object.assign(watch, undo); undo = null }}>Undo clear</button>
+        {:else}<button class="btn" onclick={example}>Show the example again</button>{/if}
+      {/if}
       <button class="btn primary" onclick={run} disabled={!parsed.ids.length || busy}>
         {busy ? 'Analysing…' : parsed.ids.length ? `Analyse ${num(parsed.ids.length)} CVE${parsed.ids.length === 1 ? '' : 's'}` : 'Analyse'}
       </button>
@@ -224,7 +229,8 @@
 
   <Figure n={19} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Exploited first, then likely targets by EPSS, then by CVSS severity" csv={csvRows}>
     {#snippet legend()}{#each TIERS as t, i (t.label)}<span><span class="chip" class:solid-red={i === 0} class:red={i === 1}>{t.label}</span> {t.note}</span>{/each}{/snippet}
-    <div class="table-scroll">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
       <table class="data">
         <thead><tr><th>Priority</th><th>CVE</th><th>Vendor · product</th><th>Severity</th><th class="r">EPSS</th><th>KEV</th><th>Weakness</th></tr></thead>
         <tbody>
@@ -322,7 +328,7 @@
   .field { display: grid; gap: 0.5rem; align-content: start; }
   textarea {
     width: 100%; min-height: 10rem; resize: vertical; padding: 0.8rem 0.9rem; border: 1px solid var(--rule-strong);
-    background: var(--paper); color: var(--ink); font: 400 0.875rem/1.6 var(--mono);
+    background: var(--paper); color: var(--ink); font: 400 1rem/1.6 var(--mono); /* under 16px makes iOS zoom on focus */
   }
   textarea.dragging { border-width: 2px; background: var(--shade); }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.6rem; }
