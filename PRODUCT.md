@@ -8,13 +8,13 @@ web
 
 ## Stack
 
-Static site + nightly ETL (user choice). Python standard-library ETL writes precomputed JSON; Vite + TypeScript + Svelte 5 front end, D3 for scales, Motion for springs. Hosted as static files (GitHub Pages workflow provided; repo/deploy not yet created).
+Static site + nightly ETL (user choice). Python standard-library ETL writes precomputed JSON; Vite + TypeScript + Svelte 5 front end, D3 for scales, native Svelte motion. Hosted on Cloudflare Workers at pulse.nimstead.systems, refreshed daily by GitHub Actions.
 
 ## Users
 
 - **Leadership (primary):** CISOs, heads of security, risk owners. They need the trend story in seconds — is CVE volume rising, how much gets exploited, how fast — often to drop into a deck or board update.
 - **Vulnerability management teams:** prioritisation — what is exploited, EPSS likelihood, which vendors and weakness types dominate.
-- **SOC analysts:** what changed this week — newly exploited CVEs, CISA due dates, ransomware-linked entries, fresh criticals.
+- **SOC analysts:** what changed this week — new KEV listings, CISA due dates, ransomware-linked entries, fresh criticals.
 
 ## Brand
 
@@ -26,7 +26,7 @@ Turn the public CVE firehose into an easy-to-interpret picture: how many CVEs ar
 
 ## Positioning
 
-Joins release volume with exploitation timing: every KEV entry is tied back to its publication date, so the product can show the gap between disclosure and exploitation, not just two separate counts.
+Joins release volume with exploitation timing: every KEV entry is tied back to its publication date, so the product can show the gap between NVD publication and KEV listing, not just two separate counts.
 
 ## Operating Context
 

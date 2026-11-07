@@ -21,7 +21,7 @@
   const overdue = $derived(kev.filter((k) => k.due && k.due < today && k.due >= addDays(today, -windowDays)).sort((a, b) => b.due.localeCompare(a.due))) // most recently missed first
   const dueSoon = $derived(kev.filter((k) => k.due && k.due >= today && k.due <= addDays(today, windowDays)).sort((a, b) => a.due.localeCompare(b.due)))
   const todayN = $derived(dueSoon.filter((k) => k.due === today).length)
-  // triage order: newly exploited, then KEV due today, then fresh Critical/High with EPSS of 10% or more
+  // triage order: new KEV listings, then KEV due today, then fresh Critical/High with EPSS of 10% or more
   const start = $derived.by(() => {
     const out: { id: string; what: string; why: string; facts: string; red: boolean; due: string; late: boolean }[] = [], seen = new Set<string>()
     const add = (x: (typeof out)[number]) => { if (!seen.has(x.id)) { seen.add(x.id); out.push(x) } }
@@ -30,7 +30,7 @@
     const isNew = new Set(newKev.map((k) => k.id))
     // the deadline in words, so a row is scannable without reading its facts line
     const dueOf = (d: string) => { if (!d) return { due: 'No deadline', late: false }; const left = daysBetween(today, d); return left < 0 ? { due: `${-left} day${left === -1 ? '' : 's'} overdue`, late: true } : left === 0 ? { due: 'Due today', late: true } : { due: `Due in ${left} day${left === 1 ? '' : 's'}`, late: false } }
-    const kevRow = (k: Kev, why: string) => ({ id: k.id, what: kvp(k.vendor, k.product), why: [why, isNew.has(k.id) ? 'Newly exploited' : '', k.ransom ? 'ransomware' : ''].filter(Boolean).join(' · '), facts: kevFacts(k), red: true, ...dueOf(k.due) })
+    const kevRow = (k: Kev, why: string) => ({ id: k.id, what: kvp(k.vendor, k.product), why: [why, isNew.has(k.id) ? 'New KEV listing' : '', k.ransom ? 'ransomware' : ''].filter(Boolean).join(' · '), facts: kevFacts(k), red: true, ...dueOf(k.due) })
     // every overdue and due-today item is listed, so the list keeps its promise; only the sections below are capped
     for (const k of overdue) add(kevRow(k, 'Overdue'))
     for (const k of dueSoon) if (k.due === today) add(kevRow(k, isNew.has(k.id) ? 'Due today' : 'KEV due today'))
@@ -46,7 +46,7 @@
   let copied = $state('')
   async function brief() {
     const lines = [`Nimstead Pulse · last ${windowDays} days to ${dateShort(today)}`, '',
-      `${newKev.length} newly exploited (CISA KEV) · ${todayN} KEV due today · ${overdue.length} due dates passed in the last ${windowDays} days · ${severeN} new Critical or High CVEs, ${likely.length} with EPSS of 10% or more`, '',
+      `${newKev.length} new CISA KEV listings · ${todayN} KEV due today · ${overdue.length} due dates passed in the last ${windowDays} days · ${severeN} new Critical or High CVEs, ${likely.length} with EPSS of 10% or more`, '',
       'Start here:', ...start.map((x) => `- ${x.id}  ${x.what}  (${x.why}; ${x.facts})`), '', 'Sources: NVD, CISA KEV, EPSS']
     try { await navigator.clipboard.writeText(lines.join('\n')); copied = 'Copied' } catch { copied = 'Copy failed' }
     setTimeout(() => (copied = ''), 1800)
@@ -71,8 +71,8 @@
 
 <header class="view-head">
   <h2>This week</h2>
-  <p class="insight"><b>{num(newKev.length)}</b> newly exploited CVE{newKev.length === 1 ? '' : 's'} in the last {windowDays} days. {todayN ? `${num(todayN)} KEV deadline${todayN === 1 ? '' : 's'} fall${todayN === 1 ? 's' : ''} today` : 'No KEV deadline falls today'}{overdue.length ? `, and ${num(overdue.length)} ${overdue.length === 1 ? 'has' : 'have'} passed their due date in the last ${windowDays} days` : ''}.</p>
-  <p>The operational brief: what was newly confirmed as exploited, what is due, and the serious CVEs that have just been published.</p>
+  <p class="insight"><b>{num(newKev.length)}</b> new KEV listing{newKev.length === 1 ? '' : 's'} in the last {windowDays} days. {todayN ? `${num(todayN)} KEV deadline${todayN === 1 ? '' : 's'} fall${todayN === 1 ? 's' : ''} today` : 'No KEV deadline falls today'}{overdue.length ? `, and ${num(overdue.length)} ${overdue.length === 1 ? 'has' : 'have'} passed their due date in the last ${windowDays} days` : ''}.</p>
+  <p>The operational brief: what CISA added to KEV, what is due, and the serious CVEs that have just been published.</p>
 </header>
 
 <div class="toggle" role="group" aria-label="Window">
@@ -90,7 +90,7 @@
 {#if start.length}
   <section class="start" aria-labelledby="start-h">
     <div class="start-head">
-      <div><h3 id="start-h">Start here</h3><p class="rank">Every KEV item overdue or due today, then everything newly exploited, then the rest due in the next {windowDays} days, then the 2 fresh CVEs with the highest EPSS.</p></div>
+      <div><h3 id="start-h">Start here</h3><p class="rank">Every KEV item overdue or due today, then new KEV listings, then the rest due in the next {windowDays} days, then the 2 fresh CVEs with the highest EPSS.</p></div>
       <span class="acts"><button class="copytext" onclick={brief}>{copied || 'Copy as text'}</button><button class="copytext" onclick={() => downloadCsv(start.map((x, i) => ({ rank: i + 1, cve: x.id, product: x.what, status: x.why, deadline: x.due, facts: x.facts })), 'start-here')}>CSV</button></span>
     </div>
     <ol>

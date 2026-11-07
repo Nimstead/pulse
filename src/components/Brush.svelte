@@ -7,7 +7,7 @@
   } = $props()
 
   const n = $derived(labels.length)
-  const MIN = 3 // months
+  const MIN = 1 // a shared URL may select a single month
   let width = $state(600)
   const px = $derived(width / Math.max(1, n)) // pixels per month
   const max = $derived(Math.max(1, ...values))

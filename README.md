@@ -1,6 +1,6 @@
 # Nimstead Pulse
 
-A weekly surveillance report on CVE releases and exploitation in the wild. It shows monthly CVE volume, CISA KEV listings and how fast they follow disclosure, severity and EPSS, vendors and weaknesses, a "this week" brief, and a lookup for any CVE.
+A daily surveillance report on CVE releases and exploitation in the wild. It shows monthly CVE volume, CISA KEV listings and how fast they follow disclosure, severity and EPSS, vendors and weaknesses, a "this week" brief, and a lookup for any CVE.
 
 Static site (Vite + Svelte 5). A standard-library Python ETL turns public feeds into small JSON files:
 
@@ -20,7 +20,7 @@ npm run data      # downloads ~400 MB of feeds into .cache/ (first run), writes 
 npm run dev       # http://localhost:5173
 ```
 
-`npm test` runs the ETL, watchlist and CSV self-checks. `npm run check` type-checks the app (strict TypeScript and Svelte accessibility rules); CI runs both. Re-running `npm run data` only re-downloads feeds that changed (`If-Modified-Since`).
+`npm test` runs the ETL, watchlist, CSV and shared-period self-checks. `npm run check` type-checks the app (strict TypeScript and Svelte accessibility rules); CI runs both. Re-running `npm run data` only re-downloads feeds that changed (`If-Modified-Since`).
 
 ## Deploy
 

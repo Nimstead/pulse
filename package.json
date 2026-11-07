@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "data": "python etl/build.py",
-    "test": "python -I etl/test_build.py && node src/lib/watchlist.test.ts && node src/lib/export.test.ts",
+    "test": "python -I etl/test_build.py && node src/lib/watchlist.test.ts && node src/lib/export.test.ts && node src/lib/period.test.ts",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "dev": "vite",
     "build": "vite build",

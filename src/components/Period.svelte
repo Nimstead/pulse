@@ -17,7 +17,7 @@
 <div class="period" class:compact>
   <div class="bar">
     <span class="kicker">Period · shared across tabs</span>
-    <span class="range"><b>{monthShort(months[ui.from].ym)}</b> – <b>{monthShort(months[ui.to].ym)}</b> <span class="n">· {span} months{active ? '' : ' · Custom'}</span></span>
+    <span class="range"><b>{monthShort(months[ui.from].ym)}</b> – <b>{monthShort(months[ui.to].ym)}</b> <span class="n">· {span} month{span === 1 ? '' : 's'}{active ? '' : ' · Custom'}</span></span>
     <span class="presets" role="group" aria-label="Quick periods">
       {#each presets as [l, n] (l)}
         {@const t = target(n)}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { load, isoWeek, dateLong, num, type Month, type Kev, type Meta, type Epss, type Ranked } from './lib/data'
+  import { readPeriod } from './lib/period'
   import { ui, feed, ROUTES } from './lib/state.svelte'
   import Search from './components/Search.svelte'
   import Sheet from './components/Sheet.svelte'
@@ -45,11 +46,8 @@
     const [path, qs] = location.hash.replace(/^#\/?/, '').split('?')
     const p = new URLSearchParams(qs)
     ui.route = ROUTES.some((r) => r.id === path) ? path : 'overview'
-    const idx = (ym: string | null) => (ym ? data!.months.findIndex((m) => m.ym === ym) : -1)
-    const last = data.months.length - 1
-    const f = idx(p.get('from')), t = idx(p.get('to'))
-    ui.to = t >= 0 ? t : last
-    ui.from = f >= 0 && f < ui.to ? f : Math.max(0, last - 59) // the 5Y preset
+    const [from, to] = readPeriod(data.months.map((m) => m.ym), p.get('from'), p.get('to'))
+    ui.from = from; ui.to = to
     ui.vendor = p.get('vendor') ?? ''
     ui.cve = p.get('cve') ?? ''
   }
@@ -92,7 +90,7 @@
 <div class="topbar">
   <div class="wrap issue">
     {#if data}
-      <span class="series">Vulnerability surveillance</span><span>Vol. {today.slice(0, 4)}</span><span>No. {isoWeek(today)}</span><span>Issued {dateLong(today)}</span>
+      <span class="series">Vulnerability surveillance</span><span>Vol. {today.slice(0, 4)}</span><span>No. {isoWeek(today)}</span><span class="issued">Updated {dateLong(today)}</span>
       <span class="src">Sources: NVD · CISA KEV · EPSS</span>
     {:else}<span>Loading the latest issue…</span>{/if}
   </div>
@@ -125,7 +123,9 @@
   {#if error}
     <div class="error" role="alert">
       <h2>The data files could not be loaded.</h2>
-      <p>{error}. Run <code>npm run data</code> to build them, then reload.</p>
+      <p>The report could not be downloaded. Check your connection and try again. Your private CVE list is never sent to us.</p>
+      <button class="retry" onclick={() => location.reload()}>Reload the report</button>
+      <p>If it still won’t load, <a href="https://github.com/Nimstead/pulse/issues">report the problem</a>.</p>
     </div>
   {:else if data}
     {#key ui.route}
@@ -149,7 +149,7 @@
     <ol>
       <li id="note-1"><b>CVEs</b> come from the NVD CVE JSON 2.0 feeds (feed time {data.meta.nvd.slice(0, 16).replace('T', ' ')} UTC) and are counted by NVD publication month. {num(data.meta.rejected)} rejected CVEs are excluded from all counts. The current month is partial and is hatched in charts. The headline trend compares the latest 12 full months with the 12 before; the vendor comparison uses this calendar year so far against all of last year.</li>
       <li id="note-2"><b>Exploited</b> means listed in the CISA Known Exploited Vulnerabilities catalogue (version {data.meta.kev.version}, {num(data.meta.kevCount)} entries). KEV only lists vulnerabilities with reliable evidence of exploitation that CISA tracks, so it undercounts real-world exploitation.</li>
-      <li id="note-3"><b>Days to KEV</b> is the gap between NVD publication and the KEV <i>dateAdded</i>. Zero or less means the CVE was listed on or before the day it was published, which is effectively a zero-day.</li>
+      <li id="note-3"><b>Days to KEV</b> is the gap between NVD publication and the KEV <i>dateAdded</i>. Zero or less means CISA listed it on or before NVD published it. This does not establish when exploitation began or whether a fix was available; it is not a zero-day classification.</li>
       <li id="note-4"><b>Severity</b> uses the CVSS base score in the order v3.1, v3.0, v4.0, v2, preferring NVD's own score over the CNA's. Many recent CVEs have not been analysed by NVD yet (see Figure 12).</li>
       <li id="note-5"><b>EPSS</b> is the FIRST Exploit Prediction Scoring System ({data.meta.epss.match(/model_version:([^,]+)/)?.[1] ?? 'model'}, scored {data.meta.epss.match(/score_date:(\d{4}-\d\d-\d\d)/)?.[1] ?? ''}). It estimates the probability of exploitation activity in the next 30 days. It is a probability, not a verdict.</li>
       <li id="note-6"><b>Vendor and product</b> come from the first vulnerable CPE (CVE counts by vendor use the year of publication), falling back to the CNA's affected data. Names are normalised, so small vendors may appear under slightly different spellings.</li>
@@ -168,6 +168,7 @@
         </ul></div>
         <div><h2>Project</h2><ul>
           <li><a href="https://nimstead.systems">Nimstead</a></li>
+          <li><a href="https://nimstead.systems/assure/">Fix and verify with Assure</a></li>
           <li><a href="https://github.com/Nimstead/pulse">Source on GitHub</a></li>
           <li><a href="#top" onclick={(e) => { e.preventDefault(); scrollTo({ top: 0 }); main.focus({ preventScroll: true }) }}>Back to top</a></li>
         </ul></div>
@@ -215,7 +216,8 @@
   @keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
   .error { padding: 4rem 0; max-width: 60ch; }
   .error h2 { font: 800 2.25rem/1 var(--display); letter-spacing: -0.045em; margin-bottom: 1rem; }
-  .error code { font: 0.9em var(--mono); background: var(--shade); padding: 0.1em 0.35em; }
+  .retry { background: var(--ink); color: var(--paper); border: 2px solid var(--ink); padding: 0.8rem 1.2rem; cursor: pointer; font-weight: 700; }
+  .retry:hover { background: var(--paper); color: var(--ink); }
   .loading { display: flex; gap: 6px; align-items: flex-end; height: 140px; padding: 3rem 0; }
   .loading span { width: 18px; background: var(--ink); animation: pulse 900ms ease-in-out infinite alternate; }
   .loading span:nth-child(2) { animation-delay: 150ms; } .loading span:nth-child(3) { animation-delay: 300ms; background: var(--kev); }
@@ -248,6 +250,6 @@
     .search span, .search kbd { display: none; }
     .search { width: 2.75rem; padding: 0; justify-content: center; color: var(--ink); }
     .src { margin-left: 0; }
-    .issue span:not(.series):not(:nth-child(3)) { display: none; }
+    .issue span:not(.series):not(.issued) { display: none; }
   }
 </style>

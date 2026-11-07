@@ -141,6 +141,14 @@
   const tipMonth = (ym: string) => monthLong(ym) + (partial && ym === months.at(-1)!.ym ? ' (partial)' : '')
 </script>
 
+<section class="briefing" aria-label="Start with Pulse">
+  <div class="briefing-intro"><p>Public intelligence. A clearer priority.</p><span>A daily view of published vulnerabilities, confirmed exploitation and what deserves a closer look.</span></div>
+  <div class="briefing-actions">
+    <button onclick={() => go('week')}>Read this week's brief<span>New listings and approaching due dates</span></button>
+    <button onclick={() => go('watchlist')}>Check your CVEs<span>Your list stays in your browser</span></button>
+  </div>
+</section>
+
 <div class="summary" bind:this={band}>
 <section class="lead">
   <div>
@@ -148,7 +156,7 @@
     <!-- nowrap pairs keep each footnote button on the line of the word it annotates -->
     {#if trend != null}New CVEs: {yearWord(trend).replace(/ \S+$/, '')} <span class="nw">{yearWord(trend).split(' ').at(-1)}.<Fn n={1} /></span>
     {:else}{num(N)} CVEs published {monthShort(sel[0].ym)} to <span class="nw">{monthShort(sel.at(-1)!.ym)}.<Fn n={1} /></span>{/if}
-    {#if trend != null && kevTrend != null}Newly <mark>exploited</mark>: {yearWord(kevTrend).replace(/ in a year$/, '')}.<Fn n={2} />
+    {#if trend != null && kevTrend != null}New <mark>KEV listings</mark>: {yearWord(kevTrend).replace(/ in a year$/, '')}.<Fn n={2} />
     {:else if share}Since {monthShort(sel[0].ym)}, about 1 in {num(1 / share)} is confirmed <span class="nw"><mark>exploited</mark>.<Fn n={2} /></span>{/if}
   </h2>
   {#if trend != null}{@const w = selFull.slice(-12)}<p class="basis">Both compare {monthShort(w[0].ym)} – {monthShort(w.at(-1)!.ym)} with the 12 months before: CVEs by publication month, exploited by the month CISA listed them in KEV.</p>{/if}
@@ -173,7 +181,7 @@
     </div>
     <div>
       <dt>So what</dt>
-      <dd>Few CVEs are ever exploited. Act on exploitation evidence (KEV, then EPSS<Fn n={5} />) for the few, and let the rest follow the normal patch cycle. <button class="linklike" onclick={() => go('watchlist')}>Check your own CVEs</button></dd>
+      <dd>KEV confirms exploitation; EPSS estimates likelihood. Use both to prioritise<Fn n={5} /> alongside exposure and business impact. Absence from KEV does not mean safe. <button class="linklike" onclick={() => go('watchlist')}>Check your own CVEs</button></dd>
     </div>
   </dl>
 </section>
@@ -187,7 +195,7 @@
     {@render spark(traces[0], false)}
   </div>
   <div class="sign">
-    <h3>Newly exploited (KEV) · {monthLong(latest.ym)}<Fn n={2} /></h3>
+    <h3>New KEV listings · {monthLong(latest.ym)}<Fn n={2} /></h3>
     <p class="big">{num(tKev.current)}<i class="seal" aria-hidden="true"></i></p>
     <p class="cmp"><b>{(latest.kev / Math.max(0.1, kevAvg)).toFixed(1)}×</b> the previous 12-month average ({kevAvg.toFixed(1)} a month)</p>
     {@render spark(traces[1], true)}
@@ -251,7 +259,7 @@
       tick={() => null} tipTitle={tipMonth} empty={NO_KEV} cap shade={BACKFILL} />
   </div>
   {#snippet notes()}
-    Upper panel: CVEs by NVD publication month. Lower panel, on its own scale: KEV listings by the month CISA added them. The two scales differ by about three orders of magnitude because almost every CVE is never exploited in a way CISA can confirm. A KEV bar with a break is taller than its axis; hover or step to it for its value.
+    Upper panel: CVEs by NVD publication month. Lower panel, on its own scale: KEV listings by the month CISA added them. The panels use different scales. KEV captures only exploitation CISA has confirmed, not every exploited vulnerability. A KEV bar with a break is taller than its axis; hover or step to it for its value.
   {/snippet}
 </Figure>
 
@@ -262,7 +270,7 @@
     <Lines label="Cumulative CVEs by month of year" labels={MON} lines={cumul} height={280} />
   </Figure>
 
-  <Figure n={3} name="days-to-kev" title="How fast exploitation follows disclosure" sub="KEV listings made in the period, by days since the CVE was published"
+  <Figure n={3} name="days-to-kev" title="How soon CISA lists a published CVE" sub="KEV listings made in the period, by days since the CVE was published"
     csv={() => LAG_BINS.map((b, i) => ({ bucket: b, listings: lagCounts[i] }))}>
     {#snippet legend()}
       <span><span class="swatch" style:background="var(--kev)"></span> Within 30 days of publication</span>
@@ -277,13 +285,13 @@
 </div>
 
 <section class="latest">
-  <h2>Latest confirmed exploitation</h2>
+  <h2>Latest additions to KEV</h2>
   <ul>
     {#each newest as k (k.id)}
       <li>
         <button class="linklike mono-id" onclick={() => openCve(k.id)}>{k.id}</button>
         <span class="v">{kvp(k.vendor, k.product)}</span>
-        <span class="d">Added {dateShort(k.added)}{k.lag != null ? ` · ${k.lag <= 0 ? 'zero-day' : `${num(k.lag)} day${k.lag === 1 ? '' : 's'} after publication`}` : ''}</span>
+        <span class="d">Added {dateShort(k.added)}{k.lag != null ? ` · ${k.lag <= 0 ? 'listed on or before NVD publication' : `${num(k.lag)} day${k.lag === 1 ? '' : 's'} after publication`}` : ''}</span>
         {#if k.ransom}<span class="chip red">Ransomware use known</span>{/if}
       </li>
     {/each}
@@ -295,8 +303,16 @@
 </section>
 
 <style>
-  .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.25rem, 2.5vw, 2rem) 0 1rem; }
-  .headline { font: 800 clamp(2.25rem, 4.8vw, 4.25rem)/0.94 var(--display); letter-spacing: -0.05em; max-width: 19ch; }
+  .briefing { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1.5rem 2rem; padding: 1.75rem 0; border-bottom: 1px solid var(--rule); }
+  .briefing-intro p { margin: 0 0 0.35rem; font: 700 1.125rem/1.2 var(--sans); letter-spacing: -0.02em; }
+  .briefing-intro > span { display: block; max-width: 50ch; font-size: 0.875rem; color: var(--ink-3); }
+  .briefing-actions { display: flex; gap: 1.5rem; }
+  .briefing-actions button { text-align: left; padding: 0.6rem 0 0.6rem 1rem; border: 0; border-left: 2px solid var(--ink); color: var(--ink); background: transparent; font: 700 0.9375rem/1.3 var(--sans); cursor: pointer; }
+  .briefing-actions button:hover { background: var(--shade); }
+  .briefing-actions span { display: block; margin-top: 0.35rem; max-width: 23ch; color: var(--ink-3); font-size: 0.8125rem; font-weight: 400; }
+  @media (max-width: 900px) { .briefing { grid-template-columns: minmax(0, 1fr); gap: 1rem; } .briefing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; } }
+  .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.75rem, 3vw, 2.75rem) 0 1.75rem; }
+  .headline { font: 800 clamp(2.5rem, 5.2vw, 4.75rem)/0.94 var(--display); letter-spacing: -0.05em; max-width: 19ch; }
   .headline :global(.fn) { font-size: 0.32em; vertical-align: 1.6em; letter-spacing: 0; }
   mark { background: none; color: var(--kev); }
   .view-period { margin-bottom: 1.25rem; }
