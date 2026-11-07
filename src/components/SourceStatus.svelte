@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ui } from '../lib/state.svelte'
   import { onMount } from 'svelte'
   import { dateShort, type Meta } from '../lib/data'
   import { scoreDate, snapshotAge } from '../lib/sources'
@@ -24,7 +25,16 @@
   </div>
 </details>
 
+<div class="deadline-setting">
+  <label><input type="checkbox" bind:checked={ui.kevDeadlines} aria-describedby="deadline-help" /> Use CISA KEV due dates</label>
+  <p id="deadline-help">Off by default. Enable if your organisation follows these federal deadlines or uses them as a benchmark. This changes deadline-based ordering and exports, not KEV exploitation signals. <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA guidance</a></p>
+</div>
+
 <style>
+  .deadline-setting { padding: 0.75rem 0; border-bottom: 1px solid var(--rule); font-size: 0.8125rem; }
+  .deadline-setting label { display: flex; align-items: center; gap: 0.6rem; min-height: 2.75rem; font-weight: 700; color: var(--ink); cursor: pointer; }
+  .deadline-setting input { width: 1.15rem; height: 1.15rem; accent-color: var(--ink); flex-shrink: 0; }
+
   .source-status { border-bottom: 1px solid var(--rule); color: var(--ink-3); font-size: 0.8125rem; }
   summary { padding: 0.85rem 0; cursor: pointer; }
   summary span { margin-right: 1rem; }

@@ -19,3 +19,9 @@ assert.equal(readLocation('/vendors/', '#?sort=invalid').vendorSort, 'kev')
 assert.equal(readLocation('/week/', '').windowDays, 7)
 assert.equal(readLocation('/vendors/', '#?cweSort=invalid').cweSort, 'kev')
 console.log('Route checks passed')
+
+// Federal due-date prioritisation is opt-in and survives shared links.
+assert.equal(readLocation('/week/', '').kevDeadlines, false)
+assert.equal(readLocation('/week/', '#?deadlines=on').kevDeadlines, true)
+assert.equal(readLocation('/', '#/watchlist?deadlines=on').kevDeadlines, true)
+assert.equal(readLocation('/week/', '#?deadlines=invalid').kevDeadlines, false)

@@ -45,6 +45,7 @@
 </script>
 
 <script lang="ts">
+  import { ui } from '../lib/state.svelte'
   import { tick, onDestroy, onMount } from 'svelte'
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
@@ -187,7 +188,7 @@
 
   const csvRows = () => filteredItems.map(({ row: r, kev, tier }) => ({
     snapshot_date: today, priority: TIERS[tier].label, cve: r[0], published: r[1], status: r[2], severity: r[4], score: r[3], vendor: r[6], product: r[7], cwe: r[5],
-    epss: r[8], epss_percentile: r[9], in_kev: !!kev, kev_added: kev?.added ?? '', kev_due: kev?.due ?? '', ransomware: kev?.ransom ?? false,
+    epss: r[8], epss_percentile: r[9], in_kev: !!kev, kev_added: kev?.added ?? '', ...(ui.kevDeadlines ? { kev_due: kev?.due ?? '' } : {}), ransomware: kev?.ransom ?? false,
     description: watch.desc[r[0]] ?? '',
   }))
 </script>
@@ -259,7 +260,7 @@
   <div class="tiles">
     <div><div class="kicker">Exploited (in KEV)</div><div class="big red">{num(kevN)}</div><div class="cmp">{pct(kevN / n)} of {yourList}</div></div>
     <div><div class="kicker">Known ransomware use</div><div class="big" class:red={ransomN > 0}>{num(ransomN)}</div><div class="cmp">KEV entries CISA links to ransomware</div></div>
-    <div><div class="kicker">Past the CISA due date</div><div class="big">{num(overdueN)}</div><div class="cmp">US federal deadline, a useful outside benchmark</div></div>
+    {#if ui.kevDeadlines}<div><div class="kicker">Past the CISA due date</div><div class="big">{num(overdueN)}</div><div class="cmp">Federal benchmark; not your remediation status</div></div>{/if}
     <div><div class="kicker">Elevated EPSS · 10%+</div><div class="big">{num(likelyN)}</div><div class="cmp">not listed in KEV</div></div>
     <div><div class="kicker">Critical or high</div><div class="big">{num(severeN)}</div><div class="cmp">{pct(severeN / n)} of {yourList}, by CVSS</div></div>
     <div><div class="kicker">Not scored yet</div><div class="big">{num(unscoredN)}</div><div class="cmp">no CVSS from NVD or the CNA</div></div>
@@ -312,7 +313,7 @@
               </td>
               <td class="nw">{#if r[4]}<span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span>{:else}<span class="sm">Not scored</span>{/if}</td>
               <td class="r nw">{#if r[8] != null}<b>{epssPct(r[8])}</b>{#if r[9] != null}<div class="sm">top {r[9] >= 0.999 ? '0.1%' : pct(1 - r[9], 1)}</div>{/if}{:else}—{/if}</td>
-              <td class="nw">{#if kev}Added {dateShort(kev.added)}{#if kev.due}<div class="sm" class:overdue={kev.due < today && kev.due >= addDays(today, -90)}>{kev.due >= today ? 'Due' : kev.due >= addDays(today, -90) ? 'Overdue · due' : 'Was due'} {dateShort(kev.due)}</div>{/if}{:else}<span class="sm">—</span>{/if}</td>
+              <td class="nw">{#if kev}Added {dateShort(kev.added)}{#if ui.kevDeadlines && kev.due}<div class="sm" class:overdue={kev.due < today && kev.due >= addDays(today, -90)}>{kev.due >= today ? 'Due' : kev.due >= addDays(today, -90) ? 'Federal date passed ·' : 'Was due'} {dateShort(kev.due)}</div>{/if}{:else}<span class="sm">—</span>{/if}</td>
               <td class="nw">{r[5] ? (cweNames.get(r[5]) ?? r[5]) : '—'}</td>
             </tr>
           {/each}

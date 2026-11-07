@@ -41,8 +41,8 @@
 
   function readHash() {
     if (!data) return
-    const { route, params: p, windowDays, vendorSort, cweSort } = readLocation(location.pathname, location.hash)
-    Object.assign(ui, { windowDays, vendorSort, cweSort })
+    const { route, params: p, windowDays, kevDeadlines, vendorSort, cweSort } = readLocation(location.pathname, location.hash)
+    Object.assign(ui, { windowDays, kevDeadlines, vendorSort, cweSort })
     ui.route = route
     const [from, to] = readPeriod(data.months.map((m) => m.ym), p.get('from'), p.get('to'))
     ui.from = from; ui.to = to
@@ -60,6 +60,7 @@
     if (!data) return
     const p = new URLSearchParams({ from: data.months[ui.from].ym, to: data.months[ui.to].ym })
     if (ui.vendor && ui.route === 'vendors') p.set('vendor', ui.vendor)
+    if (ui.kevDeadlines) p.set('deadlines', 'on')
     if (ui.route === 'week') p.set('days', String(ui.windowDays))
     if (ui.route === 'vendors') { p.set('sort', ui.vendorSort); p.set('cweSort', ui.cweSort) }
     if (ui.cve && watchRow(ui.cve) === undefined) p.set('cve', ui.cve) // a private-list ID never reaches the URL or history

@@ -20,19 +20,19 @@
   const newKev = $derived(kev.filter((k) => inLastDays(k.added, today, windowDays)))
   // the window before this one, for an "is this a bad week?" comparison
   const prevKevN = $derived(kev.filter((k) => k.added < since && k.added >= addDays(since, -windowDays)).length)
-  const passedWindow = $derived(kev.filter((k) => k.due && inLastDays(k.due, today, windowDays) && k.due < today).sort((a, b) => b.due.localeCompare(a.due))) // most recently passed first
-  const dueSoon = $derived(kev.filter((k) => k.due && dueWithinDays(k.due, today, windowDays)).sort((a, b) => a.due.localeCompare(b.due)))
+  const passedWindow = $derived(kev.filter((k) => ui.kevDeadlines && k.due && inLastDays(k.due, today, windowDays) && k.due < today).sort((a, b) => b.due.localeCompare(a.due))) // most recently passed first
+  const dueSoon = $derived(kev.filter((k) => ui.kevDeadlines && k.due && dueWithinDays(k.due, today, windowDays)).sort((a, b) => a.due.localeCompare(b.due)))
   const todayN = $derived(dueSoon.filter((k) => k.due === today).length)
   // triage order: KEV dates and new listings, then fresh Critical/High with elevated EPSS
   const start = $derived.by(() => {
     const out: { id: string; what: string; why: string; facts: string; red: boolean; due: string; late: boolean }[] = [], seen = new Set<string>()
     const add = (x: (typeof out)[number]) => { if (!seen.has(x.id)) { seen.add(x.id); out.push(x) } }
     const sev = (s: string, n: number | null) => (s ? `${titleCase(s.toLowerCase())}${n != null ? ` ${n.toFixed(1)}` : ''}` : 'Not scored')
-    const kevFacts = (k: Kev) => [k.due ? `Due ${dateShort(k.due)}` : '', sev(k.sev, k.score), k.epss != null ? `EPSS ${epssPct(k.epss)}` : 'EPSS unavailable'].filter(Boolean).join(' · ')
+    const kevFacts = (k: Kev) => [ui.kevDeadlines && k.due ? `Federal due ${dateShort(k.due)}` : '', sev(k.sev, k.score), k.epss != null ? `EPSS ${epssPct(k.epss)}` : 'EPSS unavailable'].filter(Boolean).join(' · ')
     const isNew = new Set(newKev.map((k) => k.id))
     // the deadline in words, so a row is scannable without reading its facts line
     const dueOf = (d: string) => { if (!d) return { due: 'No deadline', late: false }; const left = daysBetween(today, d); return left < 0 ? { due: `Due date passed ${-left} day${left === -1 ? '' : 's'} ago`, late: true } : left === 0 ? { due: 'Due today', late: true } : { due: `Due in ${left} day${left === 1 ? '' : 's'}`, late: false } }
-    const kevRow = (k: Kev, why: string) => ({ id: k.id, what: kvp(k.vendor, k.product), why: [why, isNew.has(k.id) ? 'New KEV listing' : '', k.ransom ? 'ransomware' : ''].filter(Boolean).join(' · '), facts: kevFacts(k), red: true, ...dueOf(k.due) })
+    const kevRow = (k: Kev, why: string) => ({ id: k.id, what: kvp(k.vendor, k.product), why: [why, isNew.has(k.id) ? 'New KEV listing' : '', k.ransom ? 'ransomware' : ''].filter(Boolean).join(' · '), facts: kevFacts(k), red: true, ...dueOf(ui.kevDeadlines ? k.due : '') })
     // passed dates in this window and due-today items are listed; this is not asset remediation status.
     for (const k of passedWindow) add(kevRow(k, 'KEV due date passed'))
     for (const k of dueSoon) if (k.due === today) add(kevRow(k, isNew.has(k.id) ? 'Due today' : 'KEV due today'))
@@ -48,8 +48,8 @@
   let copied = $state('')
   async function brief() {
     const lines = [`Nimstead Pulse · last ${windowDays} days to ${dateShort(today)}`, `NVD CVE publication data through ${dateShort(recent.latest)}`, '',
-      `${newKev.length} new CISA KEV listings · ${todayN} KEV due today · ${passedWindow.length} KEV due dates passed in this window · ${severeN} new Critical or High CVEs, ${likely.length} with elevated EPSS (10% or more)`, '',
-      'Start here:', ...start.map((x) => `- ${x.id}  ${x.what}  (${x.why}; ${x.facts})`), '', 'Public signals do not show whether your assets are exposed or affected; verify product and version applicability.', 'Sources: NVD, CISA KEV, EPSS']
+      `${newKev.length} new CISA KEV listings · ${ui.kevDeadlines ? `${todayN} KEV due today · ${passedWindow.length} KEV due dates passed in this window · ` : ''}${severeN} new Critical or High CVEs, ${likely.length} with elevated EPSS (10% or more)`, '',
+      'Start here:', ...start.map((x) => `- ${x.id}  ${x.what}  (${x.why}; ${x.facts})`), '', 'Public signals do not show whether your assets are exposed or affected; verify product and version applicability.', ui.kevDeadlines ? 'CISA due dates are federal benchmarks, not your remediation status.' : 'CISA due dates excluded from this handover.', 'Sources: NVD, CISA KEV, EPSS']
     try { await navigator.clipboard.writeText(lines.join('\n')); copied = 'Copied' } catch { copied = 'Copy failed' }
     setTimeout(() => (copied = ''), 1800)
   }
@@ -75,8 +75,8 @@
 
 <header class="view-head">
   <h2>This week</h2>
-  <p class="insight"><b>{num(newKev.length)}</b> new KEV listing{newKev.length === 1 ? '' : 's'} in the last {windowDays} days. {todayN ? `${num(todayN)} KEV due date${todayN === 1 ? '' : 's'} fall${todayN === 1 ? 's' : ''} today` : 'No KEV due date falls today'}{passedWindow.length ? `, and ${num(passedWindow.length)} KEV due date${passedWindow.length === 1 ? '' : 's'} passed in this window` : ''}.</p>
-  <p>New KEV entries, federal deadlines and elevated EPSS for your shift handover. Match these signals to your assets before acting.</p>
+  <p class="insight"><b>{num(newKev.length)}</b> new KEV listing{newKev.length === 1 ? '' : 's'} in the last {windowDays} days. {#if ui.kevDeadlines}{todayN ? `${num(todayN)} KEV due date${todayN === 1 ? '' : 's'} fall${todayN === 1 ? 's' : ''} today` : 'No KEV due date falls today'}{passedWindow.length ? `, and ${num(passedWindow.length)} KEV due date${passedWindow.length === 1 ? '' : 's'} passed in this window` : ''}.{/if}</p>
+  <p>New KEV entries{ui.kevDeadlines ? ", federal deadlines" : ""} and elevated EPSS for your shift handover. Match these signals to your assets before acting.</p>
   {#if nvdLag}<p class="coverage">NVD publication data in this view runs through {dateShort(recent.latest)}; the selected {windowDays}-day window ends {dateShort(today)}. New CVE counts may be partial.</p>{/if}
 </header>
 
@@ -86,27 +86,27 @@
 </div>
 
 
-<div class="tiles">
+<div class="tiles" class:no-deadlines={!ui.kevDeadlines}>
   <div><div class="kicker">New KEV listings</div><div class="big red">{num(newKev.length)}</div><div class="cmp"><b>{num(prevKevN)}</b> the {windowDays} days before{newKev.some((k) => k.ransom) ? ` · ${newKev.filter((k) => k.ransom).length} with ransomware use` : ''}</div></div>
-  <div><div class="kicker">KEV due today</div><div class="big">{num(todayN)}</div><div class="cmp">US federal deadlines falling today</div></div>
-  <div><div class="kicker">KEV due dates, next {windowDays} days</div><div class="big">{num(dueSoon.length)}</div><div class="cmp">Including today. {num(passedWindow.length)} KEV due dates passed in this window.</div></div>
+  {#if ui.kevDeadlines}<div><div class="kicker">KEV due today</div><div class="big">{num(todayN)}</div><div class="cmp">US federal deadlines falling today</div></div>
+  <div><div class="kicker">KEV due dates, next {windowDays} days</div><div class="big">{num(dueSoon.length)}</div><div class="cmp">Including today. {num(passedWindow.length)} KEV due dates passed in this window.</div></div>{/if}
   <div><div class="kicker">Elevated EPSS</div><div class="big">{num(likely.length)}</div><div class="cmp">10% or more, of {num(severeN)} new Critical or High{#if prevSevereN != null}{' '}({num(prevSevereN)} the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); document.getElementById('fresh')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></div></div>
 </div>
 
 {#if start.length}
   <section class="start" aria-labelledby="start-h">
     <div class="start-head">
-      <div><h3 id="start-h">Start here</h3><p class="rank">KEV due dates that passed in this window or fall today, then new KEV listings, then other dates due in the next {windowDays} days, then the 2 fresh CVEs with the highest available EPSS. Check asset and version applicability before prioritising action.</p></div>
-      <span class="acts"><button class="copytext" onclick={brief}>{copied || 'Copy as text'}</button><button class="copytext" onclick={() => downloadCsv(start.map((x, i) => ({ snapshot_date: today, rank: i + 1, cve: x.id, product: x.what, status: x.why, deadline: x.due, facts: x.facts })), 'start-here')}>CSV</button></span>
+      <div><h3 id="start-h">Start here</h3><p class="rank">{#if ui.kevDeadlines}KEV due dates that passed in this window or fall today, then new KEV listings, then other dates due in the next {windowDays} days, then{:else}New KEV listings, then{/if} the 2 fresh CVEs with the highest available EPSS. Check asset and version applicability before prioritising action.</p></div>
+      <span class="acts"><button class="copytext" onclick={brief}>{copied || 'Copy as text'}</button><button class="copytext" onclick={() => downloadCsv(start.map((x, i) => ({ snapshot_date: today, rank: i + 1, cve: x.id, product: x.what, status: x.why, ...(ui.kevDeadlines ? { deadline: x.due } : {}), facts: x.facts })), 'start-here')}>CSV</button></span>
     </div>
     <ol>
       {#each all ? start : start.slice(0, SHOW) as x, i (x.id)}
-        <li>
+        <li class:no-deadlines={!ui.kevDeadlines}>
           <span class="n">{i + 1}</span>
           <button class="linklike mono-id" onclick={() => openCve(x.id)}>{x.id}</button>
           <span class="chip" class:red={x.red}>{x.why}</span>
           <span class="what"><span class="nm1">{x.what}</span><small>{x.facts}</small></span>
-          <span class="due" class:late={x.late}>{x.due}</span>
+          {#if ui.kevDeadlines}<span class="due" class:late={x.late}>{x.due}</span>{/if}
         </li>
       {/each}
     </ol>
@@ -151,6 +151,7 @@
   .toggle button:first-child { border-left: 0; }
   .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
   .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1rem, 3vw, 3rem); margin-bottom: 1.5rem; }
+  .tiles.no-deadlines { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tiles > div { border-top: 2px solid var(--rule-strong); padding-top: 0.8rem; }
   .big { font: 800 clamp(2.2rem, 4.5vw, 3.2rem)/0.95 var(--display); letter-spacing: -0.05em; margin-top: 0.35rem; }
   .big.red { color: var(--kev); }
@@ -169,6 +170,7 @@
   .copytext:hover { background: var(--ink); color: var(--paper); }
   .start ol { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; }
   .start li { display: grid; grid-template-columns: 1.5rem 7.75rem 15.5rem minmax(0, 1fr) 9rem; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }
+  .start li.no-deadlines { grid-template-columns: 1.5rem 7.75rem 15.5rem minmax(0, 1fr); }
   .start li .chip { justify-self: start; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .start .due { text-align: right; font: 800 0.9375rem/1.2 var(--display); letter-spacing: -0.01em; color: var(--ink-2); }
   .start .due.late { color: var(--ink); }
@@ -177,9 +179,9 @@
   .start .nm1 { overflow-wrap: anywhere; }
   .start .what small { line-height: 1.35; }
   .start .what small { font-weight: 400; font-size: 0.8125rem; color: var(--ink-3); overflow-wrap: anywhere; }
-  @media (max-width: 900px) { .start li { grid-template-columns: 1.5rem minmax(0, 1fr); } .start li > :nth-child(n + 3) { grid-column: 2; justify-self: start; } }
+  @media (max-width: 900px) { .start li, .start li.no-deadlines { grid-template-columns: 1.5rem minmax(0, 1fr); } .start li > :nth-child(n + 3) { grid-column: 2; justify-self: start; } }
   .sm { font-size: 0.75rem; color: var(--ink-3); }
   .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 720px) { .tiles { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { .tiles, .tiles.no-deadlines { grid-template-columns: 1fr; } }
 </style>

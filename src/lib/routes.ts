@@ -15,7 +15,7 @@ export function readLocation(pathname: string, hash: string) {
   const [path, query] = legacy ? hash.slice(2).split('?') : [pathname.replace(/^\/|\/$/g, ''), hash.startsWith('#?') ? hash.slice(2) : '']
   const params = new URLSearchParams(query)
   const days = Number(params.get('days'))
-  return { windowDays: days === 14 || days === 30 ? days : 7,
+  return { kevDeadlines: params.get('deadlines') === 'on', windowDays: days === 14 || days === 30 ? days : 7,
     vendorSort: params.get('sort') === 'cves' ? 'cves' : 'kev',
     cweSort: params.get('cweSort') === 'cves' ? 'cves' : 'kev',
     route: ROUTES.some((r) => r.id === path) ? path : 'overview', params }

@@ -87,3 +87,9 @@ Charts now provide keyboard instructions, predictable arrow/Home/End navigation,
 - Production PNG export was visually inspected: chart/context included, disclosure table and controls excluded. A filtered watchlist CSV was downloaded and parsed: exactly the selected CVE and snapshot date were present.
 
 Browser viewport testing does not replace physical-device or screen-reader testing. Reduced-motion implementation was source-reviewed; an OS-level motion-preference session was not run. No deployment was performed as part of this review.
+
+### Optional KEV deadlines — follow-up
+
+Added a global, keyboard-accessible “Use CISA KEV due dates” preference, off by default. Enabling it includes federal deadline ordering, tiles and dates in the weekly handover, private-list results, CVE timeline and relevant exports. Disabling it retains exploitation signals and new KEV listings while excluding deadline-only queue entries and export fields. The choice follows navigation and reloads through the shared URL (`deadlines=on`); a fresh unconfigured URL defaults off. Guidance distinguishes the federal benchmark from an organisation's own obligations and remediation status.
+
+Verified route parsing tests, full tests, Svelte checks and production build. Browser-tested Space-key toggling, on-state reload, queue changes and 320px layout (no horizontal overflow). Physical-device and screen-reader testing remain outside this check.

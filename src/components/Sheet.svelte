@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ui } from '../lib/state.svelte'
   import { shard, num, pct, epssPct, dateLong, daysBetween, titleCase, SEV_COLOR, type Kev, type CveRow } from '../lib/data'
 
   let { id = $bindable(), kevById, today, local, cweNames = {}, epssDate, nvdDate }: {
@@ -34,7 +35,7 @@
     if (pub) s.push({ label: 'Published', date: pub, note: 'NVD publication date' })
     if (kev) {
       s.push({ label: 'Added to CISA KEV', date: kev.added, red: true, note: kev.lag == null ? '' : kev.lag <= 0 ? 'Listed on or before publication day' : `${num(kev.lag)} days after publication` })
-      if (kev.due) {
+      if (ui.kevDeadlines && kev.due) {
         const d = daysBetween(today, kev.due)
         s.push({ label: 'KEV due date (US federal deadline)', date: kev.due, note: d >= 0 ? `${d} days from the data date` : `${-d} days ago` })
       }
@@ -85,7 +86,7 @@
       {/if}
 
       <p class="triage">
-        {#if kev}CISA KEV lists this CVE based on evidence of exploitation. Check whether an affected product and version are in your environment; use CISA and vendor guidance to determine remediation. The listed due date is for US federal agencies.{:else}No KEV entry is shown in this snapshot. Check product and version applicability against your inventory and review vendor guidance.{/if}
+        {#if kev}CISA KEV lists this CVE based on evidence of exploitation. Check whether an affected product and version are in your environment; use CISA and vendor guidance to determine remediation. CISA due dates are federal benchmarks, not universal obligations.{:else}No KEV entry is shown in this snapshot. Check product and version applicability against your inventory and review vendor guidance.{/if}
         {#if epssScore == null} EPSS is unavailable in this snapshot; this does not mean low risk.{:else if !kev && epssScore >= 0.1} Elevated EPSS is a probability signal, not confirmation of exposure or exploitation.{/if}
       </p>
 
