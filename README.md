@@ -22,6 +22,16 @@ npm run dev       # http://localhost:5173
 
 `npm test` runs the ETL, watchlist, CSV and shared-period self-checks. `npm run check` type-checks the app (strict TypeScript and Svelte accessibility rules); CI runs both. Re-running `npm run data` only re-downloads feeds that changed (`If-Modified-Since`).
 
+### Browser regression checks
+
+With a local preview running and Playwright available, `npm run test:ui` checks
+triage coverage, expandable CVE groups, record recovery, citation focus, PNG
+failure feedback, and private snapshot/handover round-trips. Set `PULSE_URL` for a
+preview other than `http://127.0.0.1:5173`. An existing tooling installation can be
+used through `PULSE_PLAYWRIGHT_MODULE` (the absolute path to Playwright’s
+`index.mjs`) and `PULSE_BROWSER` (a Chromium browser executable). Every check uses
+a fresh browser context and synthetic CVE input; it does not use a personal profile.
+
 ## Deploy
 
 Live at [pulse.nimstead.systems](https://pulse.nimstead.systems), served as static assets by a Cloudflare Worker (`wrangler.jsonc`, with security headers in `public/_headers`).

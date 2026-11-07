@@ -29,13 +29,13 @@ function embedFonts() {
 
 /** Render a DOM node to PNG via an SVG foreignObject and put it on the clipboard (or download as a fallback). `foot` is a provenance line added below. */
 export async function copyPng(node: HTMLElement, name: string, foot = '') {
+  // Capture the finished chart, rather than freezing an empty entrance frame.
+  await Promise.all(node.getAnimations({ subtree: true })
+    .filter((animation) => animation.playState === 'running' && animation.effect?.getTiming().iterations !== Infinity)
+    .map((animation) => animation.finished.catch(() => {})))
   const { width } = node.getBoundingClientRect()
   const clone = node.cloneNode(true) as HTMLElement
   inlineStyles(node, clone)
-  // a full-bleed band (border-image outset) is cut to the node's box, so its content gets the page gutter as an inset
-  const gutter = getComputedStyle(node.closest('.wrap') ?? document.body).paddingLeft
-  const copies = clone.querySelectorAll<HTMLElement>('*')
-  node.querySelectorAll('*').forEach((el, i) => { if (getComputedStyle(el).borderImageSource !== 'none') copies[i].style.paddingLeft = copies[i].style.paddingRight = gutter })
   clone.querySelectorAll<HTMLElement>('[data-no-export]').forEach((el) => {
     // the inlined heights of everything above an in-flow control would keep its space
     if (el.style.position !== 'absolute') for (let a = el.parentElement; a; a = a === clone ? null : a.parentElement) a.style.height = 'auto'

@@ -11,6 +11,7 @@
 
   let node: HTMLElement
   let status = $state('')
+  let statusTimer: ReturnType<typeof setTimeout>
   let dataOpen = $state(false)
   let page = $state(0)
   const pageSize = 50
@@ -22,9 +23,12 @@
   $effect(() => { dataRows; page = 0 })
   const cellText = (value: unknown) => value == null ? '' : typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value)
   async function png() {
+    clearTimeout(statusTimer)
     status = '…'
-    try { status = await copyPng(node, name, provenance(period)) } catch { status = 'Failed' }
-    setTimeout(() => (status = ''), 1800)
+    try {
+      status = await copyPng(node, name, provenance(period))
+      statusTimer = setTimeout(() => (status = ''), 4000)
+    } catch { status = 'Failed' }
   }
 </script>
 
@@ -35,11 +39,12 @@
       {#if sub}<p class="sub">{sub}</p>{/if}
     </div>
     <div class="actions" data-no-export>
-      <button onclick={png} aria-label="Copy Figure {n} as PNG" title="Copy figure as PNG for slides">{status || 'Copy PNG'}</button>
+      <button onclick={png} disabled={status === '…'} aria-label="Copy Figure {n} as PNG" title="Copy figure as PNG for slides">{status === 'Failed' ? 'Retry PNG' : status || 'Copy PNG'}</button>
       {#if csv}<button onclick={() => downloadCsv(csv(), name)} aria-label="Download Figure {n} data as CSV" title="Download the figure's data">CSV</button>{/if}
       <span class="sr-only" aria-live="polite">{status === 'Copied' ? `Figure ${n} copied` : status === 'Saved' ? `Figure ${n} saved as PNG` : status === 'Failed' ? 'Copy failed' : ''}</span>
     </div>
   </figcaption>
+  {#if status === 'Failed'}<p class="export-error" role="alert" data-no-export>Could not create this PNG. Try again with “Retry PNG”{csv ? ', or download the data as CSV' : ''}.</p>{/if}
   {#if legend}<div class="legend">{@render legend()}</div>{/if}
   <div class="body">{@render children()}</div>
   {#if notes}<div class="notes">{@render notes()}</div>{/if}
@@ -80,6 +85,8 @@
   }
   .actions button:hover { background: var(--ink); border-color: var(--ink); color: var(--paper); }
   .actions button:active { transform: translateY(1px); }
+  .actions button:disabled { cursor: wait; }
+  .export-error { margin: 0.75rem 0 0; color: var(--ink-2); font-size: 0.875rem; }
   .legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.25rem; margin-top: 0.75rem; font-size: 0.8125rem; color: var(--ink-2); }
   .body { margin-top: 0.85rem; position: relative; }
   .notes { margin-top: 0.9rem; font-size: 0.8125rem; line-height: 1.55; color: var(--ink-3); max-width: 70ch; text-wrap: pretty; }

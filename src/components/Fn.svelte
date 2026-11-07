@@ -1,7 +1,14 @@
 <script lang="ts">
+  import { notes } from '../lib/state.svelte'
   let { n }: { n: number } = $props()
   // a button, not an anchor: the hash is the router
-  const go = () => document.getElementById(`note-${n}`)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+  function go(e: MouseEvent) {
+    const target = document.getElementById(`note-${n}`)
+    if (!target) return
+    notes.origin = e.currentTarget as HTMLElement
+    target.focus({ preventScroll: true })
+    target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+  }
 </script>
 
 <sup class="fn" data-no-export><button onclick={go} aria-label="Note {n}">{n}</button></sup>

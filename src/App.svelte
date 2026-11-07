@@ -3,7 +3,7 @@
   import { routePath, readLocation, ROUTES } from './lib/routes'
   import { isoWeek, dateLong, num, type Month, type Kev, type Meta, type Epss, type Ranked } from './lib/data'
   import { readPeriod } from './lib/period'
-  import { ui } from './lib/state.svelte'
+  import { ui, notes } from './lib/state.svelte'
   import SourceStatus from './components/SourceStatus.svelte'
   import { scoreDate } from './lib/sources'
   import Search from './components/Search.svelte'
@@ -69,6 +69,7 @@
   })
 
   let main: HTMLElement
+  $effect(() => { ui.route; notes.origin = null })
   $effect(() => {
     const r = ROUTES.find((r) => r.id === ui.route)!
     document.title = `${r.title} · Nimstead Pulse`
@@ -155,13 +156,14 @@
   <footer class="wrap"><div class="notes" id="notes" tabindex="-1">
     <h2 class="kicker">Sources and notes</h2>
     <ol>
-      <li id="note-1"><b>CVEs</b> come from the NVD CVE JSON 2.0 feeds (feed time {data.meta.nvd.slice(0, 16).replace('T', ' ')} UTC) and are counted by NVD publication month. {num(data.meta.rejected)} rejected CVEs are excluded from all counts. The current month is partial and is hatched in charts. The headline trend compares the latest 12 full months with the 12 before; the vendor comparison uses this calendar year so far against all of last year.</li>
-      <li id="note-2"><b>Exploited</b> means listed in the CISA Known Exploited Vulnerabilities catalogue (version {data.meta.kev.version}, {num(data.meta.kevCount)} entries). KEV only lists vulnerabilities with reliable evidence of exploitation that CISA tracks, so it undercounts real-world exploitation.</li>
-      <li id="note-3"><b>Days to KEV</b> is the gap between NVD publication and the KEV <i>dateAdded</i>. Zero or less means CISA listed it on or before NVD published it. This does not establish when exploitation began or whether a fix was available; it is not a zero-day classification.</li>
-      <li id="note-4"><b>Severity</b> uses the CVSS base score in the order v3.1, v3.0, v4.0, v2, preferring NVD's own score over the CNA's. Many recent CVEs have not been analysed by NVD yet (see Figure 12).</li>
-      <li id="note-5"><b>EPSS</b> is the FIRST Exploit Prediction Scoring System ({data.meta.epss.match(/model_version:([^,]+)/)?.[1] ?? 'model'}, scored {data.meta.epss.match(/score_date:(\d{4}-\d\d-\d\d)/)?.[1] ?? ''}). It estimates the probability of exploitation activity in the next 30 days. It is a probability, not a verdict.</li>
-      <li id="note-6"><b>Vendor and product</b> come from the first vulnerable CPE (CVE counts by vendor use the year of publication), falling back to the CNA's affected data. Names are normalised, so small vendors may appear under slightly different spellings.</li>
+      <li id="note-1" tabindex="-1"><b>CVEs</b> come from the NVD CVE JSON 2.0 feeds (feed time {data.meta.nvd.slice(0, 16).replace('T', ' ')} UTC) and are counted by NVD publication month. {num(data.meta.rejected)} rejected CVEs are excluded from all counts. The current month is partial and is hatched in charts. The headline trend compares the latest 12 full months with the 12 before; the vendor comparison uses this calendar year so far against all of last year.</li>
+      <li id="note-2" tabindex="-1"><b>Exploited</b> means listed in the CISA Known Exploited Vulnerabilities catalogue (version {data.meta.kev.version}, {num(data.meta.kevCount)} entries). KEV only lists vulnerabilities with reliable evidence of exploitation that CISA tracks, so it undercounts real-world exploitation.</li>
+      <li id="note-3" tabindex="-1"><b>Days to KEV</b> is the gap between NVD publication and the KEV <i>dateAdded</i>. Zero or less means CISA listed it on or before NVD published it. This does not establish when exploitation began or whether a fix was available; it is not a zero-day classification.</li>
+      <li id="note-4" tabindex="-1"><b>Severity</b> uses the CVSS base score in the order v3.1, v3.0, v4.0, v2, preferring NVD's own score over the CNA's. Many recent CVEs have not been analysed by NVD yet (see Figure 12).</li>
+      <li id="note-5" tabindex="-1"><b>EPSS</b> is the FIRST Exploit Prediction Scoring System ({data.meta.epss.match(/model_version:([^,]+)/)?.[1] ?? 'model'}, scored {data.meta.epss.match(/score_date:(\d{4}-\d\d-\d\d)/)?.[1] ?? ''}). It estimates the probability of exploitation activity in the next 30 days. It is a probability, not a verdict.</li>
+      <li id="note-6" tabindex="-1"><b>Vendor and product</b> come from the first vulnerable CPE (CVE counts by vendor use the year of publication), falling back to the CNA's affected data. Names are normalised, so small vendors may appear under slightly different spellings.</li>
     </ol>
+    {#if notes.origin}<button class="note-back" onclick={() => { notes.origin?.focus(); notes.origin = null }}>Back to citation</button>{/if}
   </div></footer>
   <div class="closing">
     <div class="wrap">
@@ -230,6 +232,9 @@
   .notes { border-top: 2px solid var(--rule-strong); margin-top: 3.5rem; padding-top: 1.25rem; padding-bottom: 3rem; font-size: 0.8125rem; color: var(--ink-3); }
   .notes ol { columns: 2 22rem; column-gap: 3rem; padding-left: 1.2rem; margin: 1rem 0 0; }
   .notes li { max-width: 70ch; text-wrap: pretty; break-inside: avoid; margin-bottom: 0.7rem; scroll-margin-top: 5rem; padding: 0.15rem 0.3rem; margin-left: -0.3rem; transition: background-color 300ms; }
+  .note-back { min-height: 2.75rem; padding: 0.5rem 0.8rem; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; }
+  .note-back:hover { background: var(--ink); color: var(--paper); }
+  .notes li:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
   .notes li::marker { font-weight: 700; color: var(--ink); }
   .notes li:target, .notes li:focus-within { background: var(--shade); }
   .notes b { color: var(--ink); }

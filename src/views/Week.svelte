@@ -46,6 +46,8 @@
   // keep the list scannable while including every passed-date and due-today row
   const SHOW = $derived(Math.max(7, passedWindow.length + todayN))
   let all = $state(false)
+  let expandedProduct = $state('')
+  let productsShown = $state(15)
   let copied = $state('')
   async function brief() {
     const lines = [`Nimstead Pulse · last ${windowDays} days to ${dateShort(today)}`, `NVD CVE publication data through ${dateShort(recent.latest)}`, '',
@@ -126,19 +128,31 @@
     <table class="data">
       <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th>Highest</th><th>Severity</th><th class="r">EPSS</th></tr></thead>
       <tbody>
-        {#each hotGroups.slice(0, 15) as g (g.name)}
+        {#each hotGroups.slice(0, productsShown) as g, i (g.name)}
           {@const r = g.top}
           <tr>
             <td><b>{g.name}</b></td>
-            <td class="r">{num(g.rows.length)}</td>
+            <td class="r"><button class="group-toggle" aria-label="{expandedProduct === g.name ? 'Hide' : 'Show'} {g.rows.length} CVE{g.rows.length === 1 ? '' : 's'} for {g.name}" aria-expanded={expandedProduct === g.name} aria-controls="week-group-{i}" onclick={() => expandedProduct = expandedProduct === g.name ? '' : g.name}>{num(g.rows.length)} CVE{g.rows.length === 1 ? '' : 's'}</button></td>
             <td><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{dateShort(r[1])}</div></td>
             <td><span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span></td>
             <td class="r">{r[8] == null ? 'Unavailable' : epssPct(r[8])}</td>
+          </tr>
+          <tr id="week-group-{i}" class="group-detail" hidden={expandedProduct !== g.name}>
+            <td colspan="5">
+              {#if expandedProduct === g.name}
+              <ul class="group-members" aria-label="CVEs for {g.name}">
+                {#each g.rows as member (member[0])}
+                  <li><button class="linklike mono-id" onclick={() => openCve(member[0])}>{member[0]}</button><span>Published {dateShort(member[1])}</span><span>{member[4] ? titleCase(member[4].toLowerCase()) : 'Not scored'}{member[3] != null ? ` ${member[3].toFixed(1)}` : ''}</span><span>EPSS {member[8] == null ? 'unavailable' : epssPct(member[8])}</span></li>
+                {/each}
+              </ul>
+              {/if}
+            </td>
           </tr>
         {/each}
       </tbody>
     </table>
   </div>
+  {#if hotGroups.length > productsShown}<button class="linklike more" onclick={() => productsShown += 15}>Show more products ({num(hotGroups.length - productsShown)} remaining)</button>{/if}
 </Figure>
 
 <Figure n={16} name="recent-published" title="CVEs published per day" sub="Darker segment: CVEs that already have a severity score"

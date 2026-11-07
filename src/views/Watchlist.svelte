@@ -274,51 +274,38 @@
     <p>The textarea contains {num(parsed.ids.length)} unique CVE IDs. The previous result used {num(watch.ids.length)} IDs and contains {num(n)} analyzed CVEs, plus {num(watch.missing.length)} not found and {num(watch.rejected.length)} rejected. Reanalyse to show results. The previous analysis remains in this tab, but its charts and exports are unavailable until the input matches again or you reanalyse.</p>
   </section>
 {:else if watch.ids.length}
+  {#if watch.example}<p class="exnote"><b>A worked example.</b> These are 14 well-known CVEs. Paste or drop your own list above and press Analyse to replace them; your list never leaves this browser.</p>{/if}
+  <section class="coverage" aria-label="Analysis coverage">
+    <p role="status"><b>{num(watch.ids.length)} submitted</b> · {num(n)} matched · {num(watch.missing.length)} not found · {num(watch.rejected.length)} rejected</p>
+    {#if watch.missing.length || watch.rejected.length}
+      <details class="unmatched">
+        <summary>Review {num(watch.missing.length + watch.rejected.length)} unmatched CVE{watch.missing.length + watch.rejected.length === 1 ? '' : 's'}</summary>
+        {#if watch.missing.length}<h3 class="kicker">Not in the NVD feed ({num(watch.missing.length)})</h3><p>{watch.missing.join(', ')}. Check the IDs; very new CVEs can take a day to appear.</p>{/if}
+        {#if watch.rejected.length}<h3 class="kicker">Rejected by the CVE program ({num(watch.rejected.length)})</h3><p>{watch.rejected.join(', ')}. These IDs were rejected. Check the CVE record for the reason and any replacement ID before closing a finding.</p>{/if}
+      </details>
+    {/if}
+  </section>
   {#if n}<div class="result-controls"><DeadlineControl /></div>{/if}
-  {#if snapshot && !busy}<SnapshotReport {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
   {#if !n}
     <section class="no-match" role="status">
       <h3>No CVEs matched this analysis</h3>
-      <p>Submitted {num(watch.ids.length)} IDs: {num(watch.missing.length)} not found, {num(watch.rejected.length)} rejected.</p>
     </section>
+    {#if snapshot && !busy}<SnapshotReport {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
   {/if}
   {#if n}
-  {#if watch.example}<p class="exnote"><b>A worked example.</b> These are 14 well-known CVEs. Paste or drop your own list above and press Analyse to replace them; your list never leaves this browser.</p>{/if}
   <p class="headline">
-    {kevN ? `${num(kevN)} of ${your} ${num(n)} CVEs ${kevN === 1 ? 'is' : 'are'} exploited in the wild` : `None of ${your} ${num(n)} CVEs is listed as exploited in the wild`}{ransomN ? `, ${num(ransomN)} with known ransomware use` : ''}.
+    {kevN ? `${num(kevN)} matched CVE${kevN === 1 ? ' is' : 's are'} exploited in the wild` : `No matched CVEs are listed as exploited in the wild`}{ransomN ? `, ${num(ransomN)} with known ransomware use` : ''}.
     {likelyN ? `${num(likelyN)} more ${likelyN === 1 ? 'has' : 'have'} an EPSS score of 10% or higher, an estimated probability of exploitation within the next 30 days.` : ''}
-    {#if watch.missing.length || watch.rejected.length}<span class="aside">{[watch.missing.length && `${num(watch.missing.length)} not found`, watch.rejected.length && `${num(watch.rejected.length)} rejected`].filter(Boolean).join(', ')}; <a href="#watch-unmatched">see the end of the page</a>.</span>{/if}
   </p>
 
   <div class="tiles">
-    <div><div class="kicker">Exploited (in KEV)</div><div class="big red">{num(kevN)}</div><div class="cmp">{pct(kevN / n)} of {yourList}</div></div>
+    <div><div class="kicker">Exploited (in KEV)</div><div class="big red">{num(kevN)}</div><div class="cmp">{pct(kevN / n)} of matched CVEs</div></div>
     <div><div class="kicker">Known ransomware use</div><div class="big" class:red={ransomN > 0}>{num(ransomN)}</div><div class="cmp">KEV entries CISA links to ransomware</div></div>
     {#if ui.kevDeadlines}<div><div class="kicker">Past the CISA due date</div><div class="big">{num(overdueN)}</div><div class="cmp">Federal benchmark; not your remediation status</div></div>{/if}
     <div><div class="kicker">Elevated EPSS · 10%+</div><div class="big">{num(likelyN)}</div><div class="cmp">not listed in KEV</div></div>
-    <div><div class="kicker">Critical or high</div><div class="big">{num(severeN)}</div><div class="cmp">{pct(severeN / n)} of {yourList}, by CVSS</div></div>
+    <div><div class="kicker">Critical or high</div><div class="big">{num(severeN)}</div><div class="cmp">{pct(severeN / n)} of matched CVEs, by CVSS</div></div>
     <div><div class="kicker">Not scored yet</div><div class="big">{num(unscoredN)}</div><div class="cmp">no CVSS from NVD or the CNA</div></div>
   </div>
-
-  <section class="descs" aria-live="polite">
-    {#if descReady}
-      <p><b>Descriptions loaded.</b> They show in the table and in each case record.</p>
-    {:else if watch.dl.running}
-      <div class="dlrow">
-        <progress max={watch.dl.total} value={watch.dl.done} aria-label="Downloading descriptions"></progress>
-        <span>{watch.dl.done} of {watch.dl.total} files</span>
-        <button class="btn" onclick={cancelDescs}>Cancel</button>
-      </div>
-    {:else}
-      <div class="dlrow">
-        <div>
-          <b>{watch.descFor ? 'Your list has changed. Refresh the descriptions?' : 'Add descriptions?'}</b>
-          <span class="muted">This downloads the full NVD text for every CVE ({shards.length} files, about 40 MB). Everyone downloads the same files, so it reveals nothing about your list. Repeat downloads come from your browser's cache.</span>
-          {#if watch.dl.error}<span class="err" role="alert">{watch.dl.error}. Check the connection and try again.</span>{/if}
-        </div>
-        <button class="btn" onclick={() => loadDescs(shards)}>{watch.dl.error ? 'Retry' : 'Download descriptions'}</button>
-      </div>
-    {/if}
-  </section>
 
   <div class="filters">
     <div><label class="filter-label" for="watch-filter">Filter by CVE, vendor or product</label>
@@ -355,6 +342,29 @@
     </div>
     {#if shown < filteredItems.length}<button class="linklike more" onclick={() => (shown += 100)}>Show more ({num(filteredItems.length - shown)} left)</button>{/if}
   </Figure>
+
+  {#if snapshot && !busy}<SnapshotReport {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
+
+  <section class="descs" aria-live="polite">
+    {#if descReady}
+      <p><b>Descriptions loaded.</b> They show in the table and in each case record.</p>
+    {:else if watch.dl.running}
+      <div class="dlrow">
+        <progress max={watch.dl.total} value={watch.dl.done} aria-label="Downloading descriptions"></progress>
+        <span>{watch.dl.done} of {watch.dl.total} files</span>
+        <button class="btn" onclick={cancelDescs}>Cancel</button>
+      </div>
+    {:else}
+      <div class="dlrow">
+        <div>
+          <b>{watch.descFor ? 'Your list has changed. Refresh the descriptions?' : 'Add descriptions?'}</b>
+          <span class="muted">This downloads the full NVD text for every CVE ({shards.length} files, about 40 MB). Everyone downloads the same files, so it reveals nothing about your list. Repeat downloads come from your browser's cache.</span>
+          {#if watch.dl.error}<span class="err" role="alert">{watch.dl.error}. Check the connection and try again.</span>{/if}
+        </div>
+        <button class="btn" onclick={() => loadDescs(shards)}>{watch.dl.error ? 'Retry' : 'Download descriptions'}</button>
+      </div>
+    {/if}
+  </section>
 
   <div class="grid-2">
     <Figure n={18} name="your-cves-severity" title="Severity of {your} CVEs against all CVEs" sub="Share by CVSS base severity"
@@ -419,12 +429,6 @@
 
   {/if}
 {/if}
-{#if !stale && watch.ids.length && (watch.missing.length || watch.rejected.length)}
-  <section id="watch-unmatched" class="unmatched">
-    {#if watch.missing.length}<h3 class="kicker">Not in the NVD feed ({num(watch.missing.length)})</h3><p>{watch.missing.join(', ')}. Check the IDs; very new CVEs can take a day to appear.</p>{/if}
-    {#if watch.rejected.length}<h3 class="kicker">Rejected by the CVE program ({num(watch.rejected.length)})</h3><p>{watch.rejected.join(', ')}. These IDs were rejected. Check the CVE record for the reason and any replacement ID before closing a finding.</p>{/if}
-  </section>
-{/if}
 
 <style>
   .snapshot-load { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; padding-top: 0.75rem; border-top: 1px solid var(--rule); }
@@ -463,7 +467,6 @@
   .filter-label { display: block; font-weight: 700; margin: 0 0 0.35rem; }
   .filters { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(11rem, 0.5fr); gap: 0 1rem; max-width: 42rem; }
   .filter-input { width: 100%; min-height: 2.75rem; padding: 0.5rem 0.7rem; border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink); font: 400 1rem var(--sans); margin-bottom: 0.8rem; }
-  .headline .aside { display: block; font: 400 0.875rem var(--sans); color: var(--ink-3); margin-top: 0.4rem; }
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem clamp(1rem, 3vw, 3rem); margin-bottom: 1.75rem; }
   .tiles > div { border-top: 2px solid var(--rule-strong); padding-top: 0.8rem; }
   .big { font: 800 clamp(2rem, 4vw, 2.8rem)/0.95 var(--display); letter-spacing: -0.05em; margin-top: 0.35rem; }
@@ -481,8 +484,7 @@
   .sm { font-size: 0.75rem; color: var(--ink-3); }
   .overdue { color: var(--ink); font-weight: 700; }
   .no-match { border-top: 2px solid var(--rule-strong); padding: 1rem 0; margin: 1rem 0; }
-  .no-match h3, .no-match p { margin: 0; }
-  .no-match p { margin-top: 0.35rem; color: var(--ink-2); }
+  .no-match h3 { margin: 0; }
   td.desc { max-width: 46ch; }
   .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   .hbars { display: grid; gap: 1.1rem; }
@@ -493,7 +495,10 @@
   .hb span { display: flex; align-items: center; justify-content: center; font: 600 0.8125rem var(--sans); color: var(--ink); min-width: 2px; }
   .hb span.dark { color: var(--paper); }
   .hb span.edge { box-shadow: inset 0 0 0 1px var(--line-strong); }
-  .unmatched { border-top: 1px solid var(--rule-strong); padding-top: 1rem; margin-top: 1.5rem; font-size: 0.875rem; color: var(--ink-2); scroll-margin-top: 5rem; }
+  .coverage { border-top: 2px solid var(--rule-strong); padding-top: 0.75rem; margin-bottom: 1rem; }
+  .coverage > p { margin: 0; }
+  .unmatched { font-size: 0.875rem; color: var(--ink-2); }
+  .unmatched summary { min-height: 2.75rem; padding: 0.6rem 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
   .unmatched p { margin: 0.35rem 0 1rem; overflow-wrap: anywhere; }
   @media (max-width: 900px) { .intake { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 560px) { .filters { grid-template-columns: minmax(0, 1fr); } }

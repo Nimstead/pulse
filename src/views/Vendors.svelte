@@ -10,7 +10,7 @@
     months: Month[]; vendors: { years: string[]; rows: Ranked[] }; cwe: { years: string[]; rows: Ranked[] }; kev: Kev[]; openCve: (id: string) => void
   } = $props()
 
-  // rankings are by calendar year, so the period snaps to whole years
+  // CVE totals use calendar-year buckets; KEV listings use the selected months.
   const y0 = $derived(months[ui.from].ym.slice(0, 4)), y1 = $derived(months[ui.to].ym.slice(0, 4))
   const span = (years: string[]) => {
     const a = years.indexOf(y0), b = years.indexOf(y1)
@@ -40,6 +40,7 @@
   const current = $derived(vendors.rows.find((r) => r.key === ui.vendor) ?? null)
   const vendorKev = $derived(current ? kev.filter((k) => k.nv === current.key) : [])
   $effect(() => { if (!ui.vendor && vRows.length) ui.vendor = vRows[0].key })
+  let expandedVendor = $state('')
   let drill: HTMLElement
   function pick(key: string) {
     ui.vendor = key
@@ -53,6 +54,7 @@
   <p>Where CVEs come from, and the classes of mistake behind them. Select a vendor for its products and exploited CVEs.</p>
 </header>
 <div class="view-period"><Period {months} compact /></div>
+<p class="scope-note"><b>CVE counts:</b> calendar years {y0}{y0 === y1 ? '' : `–${y1}`}{y1 === months.at(-1)!.ym.slice(0, 4) ? ' (latest year so far)' : ''}. <b>KEV listings:</b> {monthShort(m0)}–{monthShort(m1)}. <b>Vendor details:</b> all time, independent of this period.</p>
 
 <div class="split">
   <Figure n={13} name="top-vendors" title={by === 'kev' ? 'Vendors with the most exploited CVEs' : 'Vendors with the most CVEs'} sub="CVEs published {y0}{y0 === y1 ? '' : `–${y1}`}. Exploited counts KEV listings added {monthShort(m0)} to {monthShort(m1)}. Trend shows the last 10 years."
@@ -76,12 +78,14 @@
           <h4 class="kicker sec">Top products</h4>
           <Rows rows={(current.products ?? []).map((p) => ({ key: p.key, label: titleCase(p.key), value: p.total, kev: p.kev }))} showRate valueLabel="CVEs, all time" kevLabel="KEV, all time" />
           {#if vendorKev.length}
-            <h4 class="kicker sec">Exploited CVEs, all time ({num(current.kev)})</h4>
-            <ul class="kl">
-              {#each vendorKev.slice(0, 12) as k (k.id)}
+            <h4 class="kicker sec">Exploited CVEs · all time</h4>
+            <p class="list-count">{expandedVendor === current.key ? `All ${num(vendorKev.length)} exploited CVEs` : `Latest ${num(Math.min(12, vendorKev.length))} of ${num(vendorKev.length)} exploited CVEs`}</p>
+            <ul class="kl" id="vendor-kev-list">
+              {#each expandedVendor === current.key ? vendorKev : vendorKev.slice(0, 12) as k (k.id)}
                 <li><button class="linklike mono-id" onclick={() => openCve(k.id)}>{k.id}</button><span>{k.product}</span><span class="d">{dateShort(k.added)}</span></li>
               {/each}
             </ul>
+            {#if vendorKev.length > 12}<button class="linklike more" aria-expanded={expandedVendor === current.key} aria-controls="vendor-kev-list" onclick={() => expandedVendor = expandedVendor === current!.key ? '' : current!.key}>{expandedVendor === current.key ? 'Show latest 12' : `Show all ${num(vendorKev.length)} exploited CVEs`}</button>{/if}
           {/if}
         </Figure>
       {/key}
@@ -107,6 +111,9 @@
   .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
   .split { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(1.5rem, 3vw, 3rem); }
   .drill { position: sticky; top: 3.5rem; align-self: start; }
+  .scope-note { margin: -0.75rem 0 1.5rem; font-size: 0.875rem; color: var(--ink-2); max-width: 85ch; }
+  .list-count { margin: 0 0 0.5rem; color: var(--ink-2); font-size: 0.875rem; }
+  .more { min-height: 2.75rem; margin-top: 0.5rem; font-weight: 600; }
   .sec { margin: 1.4rem 0 0.6rem; }
   .kl { list-style: none; margin: 0; padding: 0; font-size: 0.875rem; }
   .kl li { display: flex; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); }

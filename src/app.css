@@ -98,6 +98,19 @@ table.data td { padding: 0.6rem 0.75rem 0.6rem 0; border-bottom: 1px solid var(-
 table.data td.r, table.data th.r { text-align: right; }
 table.data tr:hover td { background: var(--shade); }
 .table-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; } /* hidden: ID hit areas overhang the last row */
+/* Product groups keep the scan row compact and reveal every underlying CVE on demand. */
+.group-toggle { min-height: 2.75rem; padding: 0.4rem 0.5rem; border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.group-toggle:hover, .group-toggle[aria-expanded='true'] { background: var(--ink); color: var(--paper); }
+.group-detail td { background: var(--shade); }
+.group-members { list-style: none; margin: 0; padding: 0 0.75rem; }
+.group-members li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.5rem; min-height: 2.75rem; padding: 0.3rem 0; }
+.group-members li + li { border-top: 1px solid var(--line-strong); }
+.group-members span { color: var(--ink-2); }
+.group-members button { min-height: 2.75rem; }
+@media (max-width: 640px) {
+  .group-members { max-width: calc(100vw - 3.5rem); }
+  .group-members li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.25rem 0.75rem; }
+}
 .view-head { padding: clamp(2rem, 4vw, 3.25rem) 0 1.25rem; max-width: 72ch; }
 .view-head h2 { font: 800 clamp(2.2rem, 5vw, 3.75rem)/0.95 var(--display); letter-spacing: -0.05em; }
 .view-head .insight { color: var(--ink); font-size: clamp(1.25rem, 2vw, 1.5rem); line-height: 1.3; letter-spacing: -0.02em; font-weight: 500; max-width: 46ch; margin-top: 1.1rem; }

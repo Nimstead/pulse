@@ -9,18 +9,26 @@
   let dlg: HTMLDialogElement
   let row = $state<CveRow | null | undefined>(undefined)
   let failed = $state(false)
+  let attempt = $state(0)
+  let privateRecord = $state(false)
   let closing = $state(false)
   const kev = $derived(id ? kevById.get(id) : undefined)
   const epssScore = $derived(row?.[8] ?? kev?.epss ?? null)
+  const severity = $derived(row?.[4] || kev?.sev)
+  const severityScore = $derived(row?.[4] ? row[3] : kev?.score)
 
   $effect(() => {
+    attempt
     if (!id) return
     row = undefined
     failed = false
     if (!dlg.open) dlg.showModal()
     const want = id, mine = local?.(want)
+    privateRecord = mine !== undefined
     if (mine !== undefined) { row = mine; return } // private list: never fetch, the shard name would reveal the ID's range
-    shard(want).then((rows) => { if (id === want) row = rows.find((r) => r[0] === want) ?? null }).catch(() => { if (id === want) { row = null; failed = true } })
+    let active = true
+    shard(want).then((rows) => { if (active && id === want) row = rows.find((r) => r[0] === want) ?? null }).catch(() => { if (active && id === want) { row = null; failed = true } })
+    return () => { active = false }
   })
 
   function close() {
@@ -54,22 +62,28 @@
       <button class="x" onclick={close} aria-label="Close"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" /></svg></button>
     </header>
 
-    {#if row === undefined && !kev}
-      <p class="muted">Loading…</p>
-    {:else if failed && !kev}
-      <p class="muted" role="alert">Could not load this record. Check the connection and try again.</p>
-    {:else if row === null && !kev}
-      <p class="muted">No record for {id} in the NVD feed. Check the ID; very new CVEs can take a day to appear.</p>
-    {:else}
+    {#if row === undefined}
+      <p class="record-status" role="status">Loading NVD details…{#if kev} CISA KEV information is available below.{/if}</p>
+    {:else if failed}
+      <div class="record-status" role="alert">
+        <p>NVD details unavailable. {kev ? 'Showing CISA KEV information only.' : 'Check the connection and try again.'}</p>
+        <button class="retry" onclick={() => attempt++}>Retry NVD details</button>
+      </div>
+    {:else if row === null}
+      <p class="record-status">No NVD record for {id} in this snapshot. Check the ID; very new CVEs can take a day to appear.{#if kev} CISA KEV information is available below.{/if}</p>
+    {:else if privateRecord && !row[9]}
+      <p class="record-status">Description not loaded. Use “Download descriptions” in Your CVEs to add it privately.</p>
+    {/if}
+    {#if row || kev}
       <div class="chips">
         {#if kev}<span class="chip solid-red">Exploited · in KEV</span>{/if}
         {#if kev?.ransom}<span class="chip red">Ransomware use known</span>{/if}
-        {#if row?.[4]}<span class="chip" style:border-color={SEV_COLOR[row[4]]}><span class="swatch" style:background={SEV_COLOR[row[4]]}></span>{titleCase(row[4].toLowerCase())}{row[3] != null ? ` ${row[3].toFixed(1)}` : ''}</span>
+        {#if severity}<span class="chip" style:border-color={SEV_COLOR[severity]}><span class="swatch" style:background={SEV_COLOR[severity]}></span>{titleCase(severity.toLowerCase())}{severityScore != null ? ` ${severityScore.toFixed(1)}` : ''}</span>
         {:else if row}<span class="chip">Not scored yet</span>{/if}
         {#if row?.[2]}<span class="chip">NVD: {row[2]}</span>{/if}
       </div>
 
-      <p class="provenance">{#if nvdDate}NVD feed through {dateLong(nvdDate)}{#if epssDate} · {/if}{/if}{#if epssDate}EPSS score dated {dateLong(epssDate)}{/if}</p>
+      <p class="provenance">{#if row && nvdDate}NVD record · feed through {dateLong(nvdDate)}{#if epssDate} · {/if}{/if}{#if epssDate}EPSS score dated {dateLong(epssDate)}{/if}{#if severity && !row?.[4]} · Severity from the KEV snapshot{/if}</p>
 
       {#if kev?.name}<p class="name">{kev.name}</p>{/if}
       {#if row?.[9]}<p class="desc">{row[9]}</p>{/if}
@@ -131,6 +145,10 @@
   .name { font: 700 1.25rem/1.25 var(--display); letter-spacing: -0.02em; margin: 0 0 0.6rem; }
   .desc { color: var(--ink-2); font-size: 0.9375rem; margin: 0 0 1.25rem; }
   .provenance { margin: -0.5rem 0 1rem; color: var(--ink-3); font-size: 0.8rem; }
+  .record-status { margin: 1rem 0; padding: 0.8rem; background: var(--shade); color: var(--ink-2); font-size: 0.875rem; }
+  .record-status p { margin: 0; }
+  .retry { min-height: 2.75rem; margin-top: 0.5rem; padding: 0.4rem 0.75rem; border: 1px solid var(--ink); background: var(--paper); cursor: pointer; }
+  .retry:hover { background: var(--ink); color: var(--paper); }
   .triage { background: var(--shade); border-left: 3px solid var(--ink-2); padding: 0.75rem 0.9rem; margin: 0 0 1.25rem; font-size: 0.875rem; color: var(--ink-2); }
   .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.25rem; margin: 0 0 0.75rem; }
   .facts div { border-top: 1px solid var(--rule); padding-top: 0.5rem; }

@@ -36,6 +36,7 @@
   const binLabels = $derived(epssBands(epss.edges))
   const highEpss = $derived(epss.all.slice(4).reduce((x, y) => x + y, 0))
   let shown = $state(25)
+  let expandedProduct = $state('')
 </script>
 
 <header class="view-head">
@@ -91,16 +92,27 @@
     <table class="data">
       <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th>Highest</th><th>Severity</th><th class="r">Age</th><th class="r">EPSS</th></tr></thead>
       <tbody>
-        {#each watchGroups.slice(0, shown) as g (g.name)}
+        {#each watchGroups.slice(0, shown) as g, i (g.name)}
           {@const w = g.top}
           {@const age = ageMo(w.pub)}
           <tr>
             <td><b>{g.name}</b></td>
-            <td class="r">{num(g.rows.length)}</td>
+            <td class="r"><button class="group-toggle" aria-label="{expandedProduct === g.name ? 'Hide' : 'Show'} {g.rows.length} CVE{g.rows.length === 1 ? '' : 's'} for {g.name}" aria-expanded={expandedProduct === g.name} aria-controls="severity-group-{i}" onclick={() => expandedProduct = expandedProduct === g.name ? '' : g.name}>{num(g.rows.length)} CVE{g.rows.length === 1 ? '' : 's'}</button></td>
             <td><button class="linklike mono-id" onclick={() => openCve(w.id)}>{w.id}</button><div class="sm">{dateShort(w.pub)}</div></td>
             <td>{w.sev ? `${titleCase(w.sev.toLowerCase())}${w.score != null ? ` ${w.score.toFixed(1)}` : ''}` : '—'}</td>
             <td class="r nw">{age < 1 ? 'New' : age < 24 ? `${age} mo` : `${Math.floor(age / 12)} yr`}</td>
             <td class="r"><b>{epssPct(w.epss)}</b></td>
+          </tr>
+          <tr id="severity-group-{i}" class="group-detail" hidden={expandedProduct !== g.name}>
+            <td colspan="6">
+              {#if expandedProduct === g.name}
+              <ul class="group-members" aria-label="CVEs for {g.name}">
+                {#each g.rows as member (member.id)}
+                  <li><button class="linklike mono-id" onclick={() => openCve(member.id)}>{member.id}</button><span>Published {dateShort(member.pub)}</span><span>{member.sev ? titleCase(member.sev.toLowerCase()) : 'Not scored'}{member.score != null ? ` ${member.score.toFixed(1)}` : ''}</span><span>EPSS {epssPct(member.epss)}</span></li>
+                {/each}
+              </ul>
+              {/if}
+            </td>
           </tr>
         {/each}
       </tbody>

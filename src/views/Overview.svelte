@@ -54,10 +54,14 @@
 
   let band: HTMLElement
   let bandStatus = $state('')
+  let bandTimer: ReturnType<typeof setTimeout>
   async function copyBand() {
+    clearTimeout(bandTimer)
     bandStatus = '…'
-    try { bandStatus = await copyPng(band, 'pulse-summary-' + latest.ym, provenance()) } catch { bandStatus = 'Failed' }
-    setTimeout(() => (bandStatus = ''), 1800)
+    try {
+      bandStatus = await copyPng(band, 'pulse-summary-' + latest.ym, provenance())
+      bandTimer = setTimeout(() => (bandStatus = ''), 4000)
+    } catch { bandStatus = 'Failed' }
   }
 
   const motion = { duration: () => (prefersReducedMotion.current ? 0 : 520), easing: cubicOut }
@@ -122,7 +126,7 @@
     const now = yearTotal(thisY), before = yearTotal(lastY), rise = now - before
     if (rise <= 0 || !before) return null
     const gNow = sum(growth, (g) => g.now), gBefore = sum(growth, (g) => g.before)
-    return { share: (gNow - gBefore) / rise, without: before - gBefore > 0 ? (now - gNow) / (before - gBefore) - 1 : null }
+    return { share: (gNow - gBefore) / rise }
   })
   // rolling 12-month totals indexed to 100, starting once the KEV window is clear of the launch backfill
   const indexed = $derived.by(() => {
@@ -161,22 +165,15 @@
     {:else if share}Since {monthShort(sel[0].ym)}, about 1 in {num(1 / share)} is confirmed <span class="nw"><mark>exploited</mark>.<Fn n={2} /></span>{/if}
   </h2>
   {#if !selFull.length}<p class="basis">{num(sum(sel, (m) => m.n))} CVEs published so far in {monthLong(sel[0].ym)}. Monthly charts include partial counts; year-on-year comparisons need complete months.</p>{/if}
-  {#if trend != null}{@const w = selFull.slice(-12)}<p class="basis">Both compare {monthShort(w[0].ym)} – {monthShort(w.at(-1)!.ym)} with the 12 months before: CVEs by publication month, exploited by the month CISA listed them in KEV.</p>{/if}
-  <button class="copy" onclick={copyBand} data-no-export title="Copy the headline, the three figures and Figure 1 as one PNG for slides">{bandStatus || 'Copy summary for slides'}</button>
+  {#if trend != null}{@const w = selFull.slice(-12)}<p class="basis">{kevTrend != null ? 'Both trends compare' : 'The publication trend compares'} {monthShort(w[0].ym)} – {monthShort(w.at(-1)!.ym)} with the 12 months before{#if kevTrend != null}: CVEs by publication month, KEV listings by the month CISA added them{/if}.</p>{/if}
+  <button class="copy" onclick={copyBand} disabled={bandStatus === '…'} data-no-export title="Copy the headline, the three figures and Figure 1 as one PNG for slides">{bandStatus === 'Failed' ? 'Retry summary PNG' : bandStatus || 'Copy summary for slides'}</button>
+  {#if bandStatus === 'Failed'}<p class="export-error" role="alert" data-no-export>Could not create the summary PNG. Try again with “Retry summary PNG”, or export the figures individually below.</p>{/if}
   <span class="sr-only" role="status" data-no-export>{bandStatus === '…' ? 'Copying summary…' : bandStatus}</span>
   </div>
   <dl class="answers">
     <div>
-      {#if why}
-        <dt>Why</dt>
-        <dd>The rise is broad. Comparing {thisY} so far with all of {lastY}, {growth[0].name}, {growth[1].name} and {growth[2].name} had the largest absolute increases and account for <b>{pct(why.share)}</b> of the increase. {#if why.share <= 1}The remaining {pct(1 - why.share)} comes from other vendors.{:else}Declines elsewhere offset part of their increase.{/if}<Fn n={6} />
-          {#if why.share <= 1}<span class="split" role="img" aria-label="Share of the increase: top three vendors {pct(why.share)}, all other vendors {pct(1 - why.share)}">
-            <i style:width="{why.share * 100}%"><b>Top 3 · {pct(why.share)}</b></i><i class="rest" style:width="{(1 - why.share) * 100}%"><b>Everyone else · {pct(1 - why.share)}</b></i>
-          </span>{/if}</dd>
-      {:else}
-        <dt>Period</dt>
-        <dd><b>{num(N)}</b> CVEs in the complete months of the selected period{#if trend != null}; the trend compares the latest 12 months with the 12 before{/if}.</dd>
-      {/if}
+      <dt>Period</dt>
+      <dd><b>{num(N)}</b> CVEs in the complete months of the selected period{#if trend != null}; the trend compares the latest 12 months with the 12 before{/if}.</dd>
     </div>
     <div>
       <dt>Exploitation</dt>
@@ -233,6 +230,13 @@
   </Figure>
 {/if}
 </div>
+
+{#if why}
+<section class="year-context" aria-labelledby="year-context-title">
+  <h3 id="year-context-title">Current-year context · {thisY}</h3>
+  <p>This comparison is independent of the selected period: {thisY} so far against all of {lastY}. {growth[0].name}, {growth[1].name} and {growth[2].name} had the largest absolute increases in published CVEs and account for <b>{pct(why.share)}</b> of the increase. {#if why.share <= 1}The remaining {pct(1 - why.share)} comes from other vendors.{:else}Declines elsewhere offset part of their increase.{/if}<Fn n={6} /></p>
+</section>
+{/if}
 
 {#snippet spark(vs: (number | null)[], red: boolean)}
   {@const t = trace(vs)}
@@ -328,10 +332,11 @@
   @media (max-width: 900px) { .pair { grid-template-columns: minmax(0, 1fr); } }
   .basis { margin: 1.1rem 0 0; font-size: 1rem; color: var(--ink-3); max-width: 52ch; }
   .nw { white-space: nowrap; }
-  .split { display: flex; margin-top: 0.75rem; height: 1.75rem; }
-  .split i { display: flex; align-items: center; padding: 0 0.5rem; background: var(--ink); color: var(--paper); overflow: hidden; white-space: nowrap; font-style: normal; }
-  .split i.rest { background: var(--shade); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
-  .split b { font: 700 0.75rem/1 var(--sans); }
+  .year-context { border-top: 1px solid var(--rule); padding: 1.25rem 0; margin-bottom: 1rem; }
+  .year-context h3 { font-size: 1.25rem; }
+  .year-context p { max-width: 75ch; color: var(--ink-2); margin: 0.5rem 0 0; }
+  .export-error { font-size: 0.875rem; color: var(--ink-2); max-width: 60ch; }
+
   .answers { display: grid; gap: 1.1rem; margin: 0; }
   /* beside the headline the answers set the block's height, so they step down to keep the Pulse band in the first screen */
   @media (min-width: 1101px) { .answers { gap: 0.85rem; } .answers dd { font-size: 1rem; line-height: 1.45; } .answers div { padding-top: 0.6rem; } }
