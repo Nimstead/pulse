@@ -22,10 +22,17 @@ export type Meta = {
 export type CveRow = [string, string, string, number | null, string, string, string, string, number | null, string]
 
 const cache = new Map<string, Promise<unknown>>()
+class DataLoadError extends Error {
+  status: number
+  constructor(name: string, status: number) {
+    super(`Could not load ${name} (${status})`)
+    this.status = status
+  }
+}
 export function load<T>(name: string): Promise<T> {
   if (!cache.has(name))
     cache.set(name, fetch(`/data/${name}`).then((r) => {
-      if (!r.ok) throw new Error(`Could not load ${name} (${r.status})`)
+      if (!r.ok) throw new DataLoadError(name, r.status)
       return r.json()
     }).catch((e) => { cache.delete(name); throw e })) // a failed fetch is retried next time, not cached
   return cache.get(name) as Promise<T>
@@ -33,7 +40,10 @@ export function load<T>(name: string): Promise<T> {
 
 export const shard = (cveId: string) => {
   const [, y, n] = cveId.split("-")
-  return load<CveRow[]>(`cve/${y}-${Math.floor(+n / 10000)}.json`) // matches SHARD in etl/build.py
+  return load<CveRow[]>(`cve/${y}-${Math.floor(+n / 10000)}.json`).catch((error) => {
+    if (error instanceof DataLoadError && error.status === 404) return []
+    throw error
+  }) // matches SHARD in etl/build.py; an absent range has no records in this snapshot
 }
 
 const nf = new Intl.NumberFormat('en-GB')

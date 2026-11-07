@@ -87,10 +87,12 @@
 
 <Figure n={10} name="epss-watchlist" title="Elevated EPSS, not currently in KEV" sub="One row per product with EPSS of 10% or more and no current KEV listing, ranked by its highest EPSS. It draws on the {num(watch.length)} CVEs published {monthShort(a)} to {monthShort(b)} among the 300 highest-EPSS CVEs not in KEV, of {num(epss.watchTotal)} at 10% or more overall. EPSS estimates probability; it does not establish exposure or exploitation."
   csv={() => watch.map((w) => ({ cve: w.id, epss: w.epss, percentile: w.pct, vendor: w.vendor, product: w.product, severity: w.sev, score: w.score, published: w.pub }))}>
+  {#if watchGroups.length > shown}<p class="table-scope">First {num(shown)} of {num(watchGroups.length)} products shown. CSV includes all matching CVEs.</p>{/if}
+  {#if watchGroups.length}<p class="table-hint" data-no-export>Scroll sideways for all signals. The CVE stays in view.</p>{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
   <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
     <table class="data">
-      <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th>Highest</th><th>Severity</th><th class="r">Age</th><th class="r">EPSS</th></tr></thead>
+      <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th class="row-identity">Highest</th><th>Severity</th><th class="r">Age</th><th class="r">EPSS</th></tr></thead>
       <tbody>
         {#each watchGroups.slice(0, shown) as g, i (g.name)}
           {@const w = g.top}
@@ -98,7 +100,7 @@
           <tr>
             <td><b>{g.name}</b></td>
             <td class="r"><button class="group-toggle" aria-label="{expandedProduct === g.name ? 'Hide' : 'Show'} {g.rows.length} CVE{g.rows.length === 1 ? '' : 's'} for {g.name}" aria-expanded={expandedProduct === g.name} aria-controls="severity-group-{i}" onclick={() => expandedProduct = expandedProduct === g.name ? '' : g.name}>{num(g.rows.length)} CVE{g.rows.length === 1 ? '' : 's'}</button></td>
-            <td><button class="linklike mono-id" onclick={() => openCve(w.id)}>{w.id}</button><div class="sm">{dateShort(w.pub)}</div></td>
+            <td class="row-identity"><button class="linklike mono-id" onclick={() => openCve(w.id)}>{w.id}</button><div class="sm">{dateShort(w.pub)}</div></td>
             <td>{w.sev ? `${titleCase(w.sev.toLowerCase())}${w.score != null ? ` ${w.score.toFixed(1)}` : ''}` : '—'}</td>
             <td class="r nw">{age < 1 ? 'New' : age < 24 ? `${age} mo` : `${Math.floor(age / 12)} yr`}</td>
             <td class="r"><b>{epssPct(w.epss)}</b></td>
@@ -118,7 +120,7 @@
       </tbody>
     </table>
   </div>
-  {#if shown < watchGroups.length}<button class="linklike more" onclick={() => (shown += 50)}>Show more</button>{/if}
+  {#if shown < watchGroups.length}<button class="linklike more" data-no-export onclick={() => (shown += 50)}>Show more</button>{/if}
 </Figure>
 
 <div class="grid-2">

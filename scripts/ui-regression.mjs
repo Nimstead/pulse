@@ -179,6 +179,8 @@ await check('empty filters announce their result and can be cleared in place', a
   await p.getByLabel('Filter by CVE, vendor or product', { exact: true }).fill('no-such-product-zqx')
   await p.getByRole('status').filter({ hasText: 'Showing 0 of 1 matching CVEs' }).waitFor()
   await p.getByText('No CVEs match these filters.', { exact: true }).waitFor()
+  assert(await p.getByRole('button', { name: 'Download Figure 17 data as CSV' }).isDisabled(), 'empty CSV export must be disabled')
+  await p.getByText('No rows to export as CSV.', { exact: true }).waitFor()
   const recovery = await p.getByRole('button', { name: 'Clear filters', exact: true }).boundingBox()
   assert(recovery && recovery.x >= 0 && recovery.x + recovery.width <= 320, 'filter recovery must fit without sideways scrolling')
   await p.getByRole('button', { name: 'Clear filters', exact: true }).click()
@@ -217,6 +219,135 @@ await check('private case records link directly to the shared description downlo
   assert(await download.evaluate(el => el === document.activeElement))
   assert.equal(shards, 0, 'the shortcut must not fetch individual CVEs or start a bulk download without a click')
 })
+
+await check('browser Back closes loaded and loading case records and restores page focus', async p => {
+  for (const delayed of [false, true]) {
+    let release
+    const hold = new Promise(resolve => { release = resolve })
+    await p.route('**/data/cve/2024-0.json', async route => {
+      if (delayed) await hold
+      await route.fulfill({ json: [['CVE-2024-3400','2024-04-12','Analyzed',10,'CRITICAL','CWE-77','paloaltonetworks','pan os',0.94,'Loaded NVD record for navigation regression.']] }).catch(error => {
+        if (!delayed) throw error // Back can cancel the deliberately held request.
+      })
+    })
+    try {
+      await visit(p)
+      await p.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'This week', exact: true }).click()
+      await p.getByRole('button', { name: 'Find a CVE or vendor', exact: true }).click()
+      const search = p.getByRole('combobox', { name: 'Find a CVE or vendor' })
+      await search.fill('CVE-2024-3400'); await search.press('Enter')
+      const dialog = p.getByRole('dialog', { name: 'CVE-2024-3400' })
+      await dialog.waitFor()
+      if (!delayed) await dialog.locator('.desc').waitFor()
+      await p.goBack()
+      await p.waitForFunction(() => location.pathname === '/')
+      await p.waitForFunction(() => !document.querySelector('dialog[open]'))
+      assert.equal(await p.evaluate(() => document.activeElement.id), 'main')
+      await p.goForward()
+      await p.getByRole('dialog', { name: 'CVE-2024-3400' }).waitFor()
+      await p.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
+    } finally { release(); await p.unrouteAll({ behavior: 'wait' }) }
+  }
+})
+await check('file controls explain startup readiness and import successfully once enabled', async p => {
+  let release
+  const hold = new Promise(resolve => { release = resolve })
+  await p.route('**/data/meta.json', async route => { await hold; await route.continue() })
+  try {
+    await p.goto(origin + '/watchlist/', { waitUntil: 'domcontentloaded' })
+    assert(await p.getByLabel('Choose file', { exact: true }).isDisabled())
+    assert(await p.getByLabel('Load snapshot', { exact: true }).isDisabled())
+    await p.getByText(/File imports will be available/).waitFor()
+    release()
+    await p.waitForFunction(() => !document.querySelector('input[multiple]').disabled)
+    await p.getByLabel('Choose file', { exact: true }).setInputFiles({ name: 'cves.txt', mimeType: 'text/plain', buffer: Buffer.from('CVE-2024-3400\nCVE-2021-44228') })
+    await p.waitForFunction(() => document.querySelector('#watch-text').value.includes('CVE-2024-3400'))
+    assert.match(await p.getByLabel('CVE list', { exact: true }).inputValue(), /CVE-2021-44228/)
+    assert(!p.url().includes('CVE-'))
+  } finally { release() }
+})
+await check('a missing shard gets missing-record guidance instead of a connection retry', async p => {
+  await p.route('**/data/cve/2099-9.json', route => route.fulfill({ status: 404, body: 'Not found' }))
+  await visit(p, '/#?cve=CVE-2099-99999')
+  const dialog = p.getByRole('dialog', { name: 'CVE-2099-99999' })
+  await dialog.getByText(/No NVD record/).waitFor()
+  assert.match(await dialog.innerText(), /Check the ID/)
+  assert.equal(await dialog.getByRole('button', { name: 'Retry NVD details' }).count(), 0)
+})
+await check('choosing a vendor in search focuses the selected profile on new and current routes', async p => {
+  for (const path of ['/', '/vendors/']) {
+    await visit(p, path)
+    await p.getByRole('button', { name: 'Find a CVE or vendor', exact: true }).click()
+    const search = p.getByRole('combobox', { name: 'Find a CVE or vendor' })
+    await search.fill('Cisco'); await search.press('Enter')
+    const profile = p.getByRole('region', { name: 'Lifetime profile: Cisco' })
+    await profile.waitFor()
+    assert(await profile.evaluate(el => el === document.activeElement))
+  }
+})
+await check('snapshot changes are visible near coverage and link to focused comparison details', async p => {
+  await visit(p, '/watchlist/')
+  await p.getByLabel('CVE list', { exact: true }).fill('CVE-2024-3400')
+  await p.getByRole('button', { name: 'Analyse 1 CVE', exact: true }).click()
+  await p.getByRole('button', { name: 'Download snapshot', exact: true }).waitFor({ timeout: 15000 })
+  const pending = p.waitForEvent('download')
+  await p.getByRole('button', { name: 'Download snapshot', exact: true }).click()
+  const stream = await (await pending).createReadStream()
+  const chunks = []; for await (const chunk of stream) chunks.push(chunk)
+  const baseline = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  // Controlled presentation fixture, not an assertion about historical public observations.
+  Object.assign(baseline.findings[0], { kev: false, ransomware: false, kevAdded: '', kevDue: '', epss: 0.05 })
+  await p.getByLabel('Load snapshot', { exact: true }).setInputFiles({ name: 'baseline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(baseline)) })
+  const summary = p.getByRole('region', { name: 'Snapshot comparison summary' })
+  await summary.getByText(/1 with changed signals/).waitFor({ timeout: 15000 })
+  const positions = await p.evaluate(() => ({ summary: document.querySelector('[aria-label="Snapshot comparison summary"]').getBoundingClientRect().top, queue: [...document.querySelectorAll('figure')].find(el => el.textContent.includes('CVEs in priority order')).getBoundingClientRect().top, open: document.querySelector('.snapshot-report details').open }))
+  assert(positions.summary < positions.queue)
+  assert.equal(positions.open, false)
+  await summary.getByRole('button', { name: 'Review changes' }).click()
+  assert(await p.locator('#snapshot-comparison').evaluate(el => el.open && el.querySelector('summary') === document.activeElement))
+})
+await check('mobile table identities remain visible while reading the rightmost signals', async p => {
+  await p.setViewportSize({ width: 320, height: 740 })
+  for (const route of ['watchlist', 'week', 'severity']) {
+    await visit(p, '/' + route + '/')
+    const region = p.locator('.table-scroll').first()
+    const identity = region.locator('button.mono-id').first()
+    await identity.waitFor()
+    await region.evaluate(el => { el.scrollLeft = el.scrollWidth })
+    await p.waitForTimeout(100)
+    const a = await identity.boundingBox(), b = await region.boundingBox()
+    assert(a && b && a.x >= b.x - 1 && a.x + a.width <= b.x + b.width + 1, route + ': CVE identity must remain visible')
+  }
+})
+await check('mobile table PNGs include every column and omit pagination controls', async p => {
+  await p.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: { write: async () => { throw new Error('Test download fallback') } } })
+    const draw = CanvasRenderingContext2D.prototype.drawImage
+    CanvasRenderingContext2D.prototype.drawImage = function (img, ...args) {
+      if (img instanceof HTMLImageElement && img.src.startsWith('data:image/svg+xml')) window.lastExportSvg = decodeURIComponent(img.src.slice(img.src.indexOf(',') + 1))
+      return draw.call(this, img, ...args)
+    }
+  })
+  await p.setViewportSize({ width: 390, height: 844 })
+  for (const [route, number] of [['watchlist', 17], ['week', 15]]) {
+    await visit(p, '/' + route + '/')
+    const button = p.getByRole('button', { name: 'Copy Figure ' + number + ' as PNG' })
+    const figure = p.locator('figure').filter({ has: button })
+    await figure.locator('table tbody tr').first().waitFor()
+    const fullWidth = await figure.locator('table').evaluate(el => el.scrollWidth)
+    await figure.locator('.table-scroll').evaluate(el => { el.scrollLeft = el.scrollWidth })
+    const pending = p.waitForEvent('download')
+    await button.click()
+    const stream = await (await pending).createReadStream()
+    const chunks = []; for await (const chunk of stream) chunks.push(chunk)
+    const png = Buffer.concat(chunks)
+    assert(png.readUInt32BE(16) >= fullWidth * 2 - 2, route + ': PNG must include the full table width')
+    const svg = await p.evaluate(() => window.lastExportSvg)
+    assert.match(svg, /EPSS/)
+    assert(!svg.includes('Show more'), 'pagination is not content for a static image')
+  }
+})
+
 await browser.close()
 console.log(JSON.stringify(results, null, 2))
 process.exitCode = results.some(r => !r.passed) ? 1 : 0

@@ -50,7 +50,7 @@
   import DeadlineControl from '../components/DeadlineControl.svelte'
   import SnapshotReport from '../components/SnapshotReport.svelte'
   import SnapshotActions from '../components/SnapshotActions.svelte'
-  import { createSnapshot, parseSnapshot } from '../lib/snapshot'
+  import { createSnapshot, parseSnapshot, compareSnapshots } from '../lib/snapshot'
   import { ui } from '../lib/state.svelte'
   import { tick, onDestroy, onMount } from 'svelte'
   import Figure from '../components/Figure.svelte'
@@ -64,6 +64,7 @@
   } = $props()
 
   const parsed = $derived(parseIds(watch.text))
+  let ready = $state(false)
   let busy = $state(false)
   let analysisDone = $state(0)
   let err = $state('')
@@ -83,6 +84,14 @@
     coverage?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   }
   function clearFilters() { filter = ''; priority = 'all'; shown = 50; filterInput?.focus() }
+  function reviewChanges() {
+    const details = document.getElementById('snapshot-comparison') as HTMLDetailsElement | null
+    if (!details) return
+    details.open = true
+    const summary = details.querySelector('summary')
+    summary?.focus({ preventScroll: true })
+    summary?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  }
 
   // the worked example: a small fixed file every visitor fetches, analysed exactly like a pasted list
   async function example() {
@@ -95,7 +104,7 @@
       shown = 50
     } catch (e) { if (run === exampleRun) err = String((e as Error).message ?? e) }
   }
-  onMount(() => { if (!exampleShown && !watch.text && !watch.items.length) example() })
+  onMount(() => { ready = true; if (!exampleShown && !watch.text && !watch.items.length) example() })
   function cancelAnalysis() {
     analysisRun++
     analysisController?.abort()
@@ -192,6 +201,16 @@
   const descReady = $derived(watch.descFor !== '' && watch.descFor === watch.ids.join())
   const stale = $derived(watch.ids.length > 0 && !watch.example && parsed.ids.join() !== watch.ids.join())
   const snapshot = $derived(!watch.example && watch.ids.length && !stale ? createSnapshot(watch, meta, ui.kevDeadlines) : null)
+  const comparison = $derived.by(() => {
+    if (!watch.baseline || !snapshot) return { changes: [], error: '' }
+    try { return { changes: compareSnapshots(watch.baseline, snapshot, ui.kevDeadlines), error: '' } }
+    catch (e) { return { changes: [], error: (e as Error).message } }
+  })
+  const comparisonCounts = $derived({
+    changed: comparison.changes.filter(c => c.kind === 'changed').length,
+    added: comparison.changes.filter(c => c.kind === 'added').length,
+    removed: comparison.changes.filter(c => c.kind === 'removed').length,
+  })
   const filteredItems = $derived(filterItems(items, filter, priority === 'all' ? null : Number(priority)))
 
   const mineMix = $derived(SEV.map((s) => items.filter((i) => i.row[4] === s.full).length))
@@ -235,20 +254,20 @@
   <div class="field">
     <label class="kicker" for="watch-text">CVE list</label>
     <!-- no name and no form, so the browser keeps no form history; spellcheck off, because enhanced spellcheck sends text to a server -->
-    <textarea id="watch-text" bind:value={watch.text} rows="8" class:dragging placeholder="CVE-2024-3400, CVE-2021-44228 … or drop a .txt, .csv or .json file here"
+    <textarea id="watch-text" bind:value={watch.text} rows="8" class:dragging placeholder={ready ? 'CVE-2024-3400, CVE-2021-44228 … or drop a .txt, .csv or .json file here' : 'Paste CVE IDs here. File imports will be available shortly.'}
       spellcheck="false" autocomplete="off" autocapitalize="off" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-lt-active="false"
       ondragover={(e) => { e.preventDefault(); dragging = true }} ondragleave={() => (dragging = false)}
       ondrop={(e) => { e.preventDefault(); dragging = false; readFiles(e.dataTransfer?.files) }}></textarea>
     <div class="actions">
       {#if !watch.text && !n}
         {#if undo}<button class="btn" onclick={() => { Object.assign(watch, undo); undo = null }}>Undo clear</button>
-        {:else}<button class="btn" onclick={example}>Show the example again</button>{/if}
+        {:else}<button class="btn" onclick={example} disabled={!ready}>Show the example again</button>{/if}
       {/if}
       {#if busy}<button class="btn" onclick={cancelAnalysis}>Cancel analysis</button>{/if}
-      <button class="btn primary" onclick={run} disabled={!parsed.ids.length || busy}>
+      <button class="btn primary" onclick={run} disabled={!ready || !parsed.ids.length || busy}>
         {busy ? 'Analysing…' : parsed.ids.length ? `Analyse ${num(parsed.ids.length)} CVE${parsed.ids.length === 1 ? '' : 's'}` : 'Analyse'}
       </button>
-      <label class="btn">Choose file<input type="file" class="sr-only" multiple accept=".txt,.csv,.json,.xml,.md,text/*"
+      <label class="btn" class:disabled={!ready}>Choose file<input type="file" class="sr-only" disabled={!ready} multiple accept=".txt,.csv,.json,.xml,.md,text/*"
         onchange={(e) => { readFiles(e.currentTarget.files); e.currentTarget.value = '' }} /></label>
       <button class="btn" onclick={clear} disabled={!watch.text && !n && !watch.baseline}>Clear</button>
       <span class="status" aria-live="polite">
@@ -257,10 +276,11 @@
       </span>
     </div>
     <div class="snapshot-load">
-      <label class="btn">Load snapshot<input type="file" class="sr-only" accept=".json,application/json"
+      <label class="btn" class:disabled={!ready}>Load snapshot<input type="file" class="sr-only" disabled={!ready} accept=".json,application/json"
         onchange={(e) => { restoreSnapshot(e.currentTarget.files?.[0]); e.currentTarget.value = '' }} /></label>
       <p>Restore a downloaded snapshot’s CVE list and compare it with today’s public data. The file is read here, never uploaded.</p>
     </div>
+    {#if !ready}<p class="analysis-progress" role="status">Preparing private analysis. File imports will be available shortly.</p>{/if}
     {#if watch.baseline}<p class="analysis-progress">Comparing with public data from {dateShort(watch.baseline.generated.slice(0, 10))}. You can edit the restored list before analysing again. <button class="linklike" onclick={() => { fileReadRun++; watch.baseline = null }}>Remove comparison</button></p>{/if}
     {#if busy}<p class="analysis-progress" role="status">Loading public index: {num(analysisDone)} of {num(indexParts)} files. The same files are requested for every list.</p>{/if}
     {#if !busy && !stale && !watch.example && watch.ids.length}
@@ -298,13 +318,22 @@
       </details>
     {/if}
   </section>
+  {#if snapshot && watch.baseline && !busy}
+    <section class="comparison-summary" aria-label="Snapshot comparison summary">
+      <h3>Changes since your saved snapshot</h3>
+      <p>Compared with public data from {dateShort(watch.baseline.generated.slice(0, 10))}.</p>
+      {#if comparison.error}<p role="alert">{comparison.error} You can still use the current analysis.</p>
+      {:else}<p class="change-counts" role="status"><b>{num(comparisonCounts.changed)}</b> with changed signals · <b>{num(comparisonCounts.added)}</b> added to the list · <b>{num(comparisonCounts.removed)}</b> removed from the list</p>{/if}
+      <button class="linklike" onclick={reviewChanges}>Review changes</button>
+    </section>
+  {/if}
   {#if n}<div class="result-controls"><DeadlineControl /></div>{/if}
   {#if snapshot && !busy}<SnapshotActions {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} />{/if}
   {#if !n}
     <section class="no-match" role="status">
       <h3>No CVEs matched this analysis</h3>
     </section>
-    {#if snapshot && !busy}<SnapshotReport {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
+    {#if snapshot && !busy}<SnapshotReport {snapshot} {comparison} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
   {/if}
   {#if n}
   <p class="headline">
@@ -334,15 +363,17 @@
   <Figure n={17} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Priority table CSV export reflects filters; summaries and charts use the full analysed list." csv={csvRows}>
     {#snippet legend()}{#if filteredItems.length}{#each TIERS as t, i (t.label)}<span><span class="chip" class:solid-red={i === 0} class:red={i === 1}>{t.label}</span> {t.note}</span>{/each}{/if}{/snippet}
     {#if filteredItems.length}
+    {#if filteredItems.length > shown}<p class="table-scope">First {num(shown)} of {num(filteredItems.length)} matching CVEs shown. CSV includes all matching CVEs.</p>{/if}
+    <p class="table-hint" data-no-export>Scroll sideways for all signals. The CVE stays in view.</p>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
     <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
       <table class="data">
-        <thead><tr><th>Priority</th><th>CVE</th><th>Vendor · product</th><th>Severity</th><th class="r">EPSS</th><th>KEV</th><th>Weakness</th></tr></thead>
+        <thead><tr><th>Priority</th><th class="row-identity">CVE</th><th>Vendor · product</th><th>Severity</th><th class="r">EPSS</th><th>KEV</th><th>Weakness</th></tr></thead>
         <tbody>
           {#each filteredItems.slice(0, shown) as { row: r, kev, tier } (r[0])}
             <tr>
               <td><span class="chip" class:solid-red={tier === 0} class:red={tier === 1}>{TIERS[tier].label}</span></td>
-              <td><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{r[1] ? dateShort(r[1]) : '—'}</div></td>
+              <td class="row-identity"><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{r[1] ? dateShort(r[1]) : '—'}</div></td>
               <td class="desc">
                 {kev?.vendor ? kvp(kev.vendor, kev.product) : vp(r[6], r[7])}
                 {#if watch.desc[r[0]]}<div class="sm">{watch.desc[r[0]].slice(0, 180)}{watch.desc[r[0]].length > 180 ? '…' : ''}</div>{/if}
@@ -356,13 +387,13 @@
         </tbody>
       </table>
     </div>
-    {#if shown < filteredItems.length}<button class="linklike more" onclick={() => (shown += 100)}>Show more ({num(filteredItems.length - shown)} left)</button>{/if}
+    {#if shown < filteredItems.length}<button class="linklike more" data-no-export onclick={() => (shown += 100)}>Show more ({num(filteredItems.length - shown)} left)</button>{/if}
     {:else}
       <div class="empty-filter"><p>No CVEs match these filters.</p><button class="btn" onclick={clearFilters}>Clear filters</button></div>
     {/if}
   </Figure>
 
-  {#if snapshot && !busy}<SnapshotReport {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
+  {#if snapshot && !busy}<SnapshotReport {snapshot} {comparison} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
 
   <section class="descs" id="descriptions" aria-label="CVE descriptions" tabindex="-1" aria-live="polite">
     {#if descReady}
@@ -450,6 +481,11 @@
 {/if}
 
 <style>
+  .comparison-summary { border-top: 1px solid var(--rule); padding-top: 1rem; margin-bottom: 1.5rem; }
+  .comparison-summary h3 { margin: 0; font: 700 1.25rem/1.25 var(--display); }
+  .comparison-summary p { margin: 0.5rem 0; max-width: 72ch; font-size: 0.875rem; color: var(--ink-2); }
+  .comparison-summary .change-counts { font-size: 1rem; color: var(--ink); }
+  .comparison-summary button { min-height: 2.75rem; font-weight: 600; }
   .analysis-ready { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; font-size: 0.875rem; }
   .analysis-ready p { margin: 0; }
   .analysis-ready button { min-height: 2.75rem; font-weight: 600; }
@@ -472,9 +508,9 @@
     display: inline-flex; align-items: center; height: 2.75rem; padding: 0 1.1rem; border: 2px solid var(--rule-strong);
     background: var(--paper); font: 700 0.875rem var(--sans); color: var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms;
   }
-  .btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
-  .btn:active:not(:disabled) { transform: scale(0.97); }
-  .btn:disabled, .btn.primary:disabled { background: var(--shade); border-color: var(--shade); color: var(--disabled); cursor: default; }
+  .btn:hover:not(:disabled):not(.disabled) { background: var(--ink); color: var(--paper); }
+  .btn:active:not(:disabled):not(.disabled) { transform: scale(0.97); }
+  .btn:disabled, .btn.primary:disabled, .btn.disabled { background: var(--shade); border-color: var(--shade); color: var(--disabled); cursor: default; }
   .btn:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
   .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
   .exnote { margin: 0 0 1rem; padding: 0.75rem 1rem; background: var(--shade); font-size: 0.9375rem; }

@@ -4,7 +4,7 @@ const PROPS = [
   'justify-content', 'gap', 'grid-template-columns', 'padding', 'margin', 'border-top', 'border-bottom', 'border-left',
   'border-right', 'border-radius', 'width', 'height', 'min-width', 'background-image', 'opacity', 'fill', 'stroke', 'stroke-width',
   'stroke-dasharray', 'text-anchor', 'dominant-baseline', 'box-sizing', 'overflow', 'position', 'top', 'left', 'right',
-  'bottom', 'transform',
+  'bottom', 'transform', 'border-collapse', 'border-spacing', 'vertical-align',
 ]
 
 function inlineStyles(src: Element, dst: Element) {
@@ -33,9 +33,25 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
   await Promise.all(node.getAnimations({ subtree: true })
     .filter((animation) => animation.playState === 'running' && animation.effect?.getTiming().iterations !== Infinity)
     .map((animation) => animation.finished.catch(() => {})))
-  const { width } = node.getBoundingClientRect()
+  const scrollers = [...node.querySelectorAll<HTMLElement>('.table-scroll')]
+  const extraWidth = Math.max(0, ...scrollers.map((el) => el.scrollWidth - el.clientWidth))
+  const width = Math.ceil(node.getBoundingClientRect().width + extraWidth)
   const clone = node.cloneNode(true) as HTMLElement
   inlineStyles(node, clone)
+  // Expand only the detached copy: a mobile viewport must not crop exported columns.
+  clone.querySelectorAll<HTMLElement>('.table-scroll').forEach((el) => {
+    el.style.overflow = 'visible'
+    for (let ancestor: HTMLElement | null = el; ancestor; ancestor = ancestor === clone ? null : ancestor.parentElement) {
+      ancestor.style.width = '100%'
+      ancestor.style.height = 'auto'
+      ancestor.style.maxHeight = 'none'
+      ancestor.style.maxWidth = 'none'
+    }
+  })
+  clone.querySelectorAll<HTMLElement>('.row-identity').forEach((el) => {
+    el.style.position = 'static'
+    el.style.left = 'auto'
+  })
   clone.querySelectorAll<HTMLElement>('[data-no-export]').forEach((el) => {
     // the inlined heights of everything above an in-flow control would keep its space
     if (el.style.position !== 'absolute') for (let a = el.parentElement; a; a = a === clone ? null : a.parentElement) a.style.height = 'auto'

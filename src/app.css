@@ -98,6 +98,13 @@ table.data td { padding: 0.6rem 0.75rem 0.6rem 0; border-bottom: 1px solid var(-
 table.data td.r, table.data th.r { text-align: right; }
 table.data tr:hover td { background: var(--shade); }
 .table-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; } /* hidden: ID hit areas overhang the last row */
+.table-hint { display: none; }
+.table-scope { margin: 0 0 0.75rem; color: var(--ink-3); font-size: 0.8125rem; }
+@media (max-width: 900px) {
+  .table-hint { display: block; margin: 0 0 0.75rem; color: var(--ink-3); font-size: 0.8125rem; }
+  .table-scroll table.data { border-collapse: separate; border-spacing: 0; }
+  table.data .row-identity { position: sticky; left: 0; z-index: 1; background: var(--paper); border-right: 1px solid var(--rule); padding-left: 0.5rem; }
+}
 /* Product groups keep the scan row compact and reveal every underlying CVE on demand. */
 .group-toggle { min-height: 2.75rem; padding: 0.4rem 0.5rem; border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink); cursor: pointer; white-space: nowrap; }
 .group-toggle:hover, .group-toggle[aria-expanded='true'] { background: var(--ink); color: var(--paper); }

@@ -136,17 +136,19 @@
 <div id="fresh" class="anchor"></div>
 <Figure n={15} name="recent-critical" title="Fresh Critical and High CVEs, by product" sub="Published in the last {windowDays} days: one row per product, ranked by its highest available EPSS. {likely.length ? `${num(likely.length)} ${likely.length === 1 ? 'has' : 'have'} EPSS of 10% or more.` : 'None with an available EPSS has reached 10%.'} EPSS is a probability signal, not a finding of exposure or exploitation."
   csv={() => hot.map((r) => ({ cve: r[0], published: r[1], severity: r[4], score: r[3], vendor: r[6], product: r[7], epss: r[8] }))}>
+  {#if hotGroups.length > productsShown}<p class="table-scope">First {num(productsShown)} of {num(hotGroups.length)} products shown. CSV includes all matching CVEs.</p>{/if}
+  {#if hotGroups.length}<p class="table-hint" data-no-export>Scroll sideways for all signals. The CVE stays in view.</p>{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
   <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
     <table class="data">
-      <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th>Highest</th><th>Severity</th><th class="r">EPSS</th></tr></thead>
+      <thead><tr><th>Vendor · product</th><th class="r">CVEs</th><th class="row-identity">Highest</th><th>Severity</th><th class="r">EPSS</th></tr></thead>
       <tbody>
         {#each hotGroups.slice(0, productsShown) as g, i (g.name)}
           {@const r = g.top}
           <tr>
             <td><b>{g.name}</b></td>
             <td class="r"><button class="group-toggle" aria-label="{expandedProduct === g.name ? 'Hide' : 'Show'} {g.rows.length} CVE{g.rows.length === 1 ? '' : 's'} for {g.name}" aria-expanded={expandedProduct === g.name} aria-controls="week-group-{i}" onclick={() => expandedProduct = expandedProduct === g.name ? '' : g.name}>{num(g.rows.length)} CVE{g.rows.length === 1 ? '' : 's'}</button></td>
-            <td><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{dateShort(r[1])}</div></td>
+            <td class="row-identity"><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{dateShort(r[1])}</div></td>
             <td><span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span></td>
             <td class="r">{r[8] == null ? 'Unavailable' : epssPct(r[8])}</td>
           </tr>
@@ -165,7 +167,7 @@
       </tbody>
     </table>
   </div>
-  {#if hotGroups.length > productsShown}<button class="linklike more" onclick={() => productsShown += 15}>Show more products ({num(hotGroups.length - productsShown)} remaining)</button>{/if}
+  {#if hotGroups.length > productsShown}<button class="linklike more" data-no-export onclick={() => productsShown += 15}>Show more products ({num(hotGroups.length - productsShown)} remaining)</button>{/if}
 </Figure>
 
 <Figure n={16} name="recent-published" title="CVEs published per day" sub="Published CVEs, split by whether a severity score is available"

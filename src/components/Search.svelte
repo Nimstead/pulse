@@ -36,9 +36,11 @@
     return out
   })
 
-  function choose(h: Hit | undefined) {
+  async function choose(h: Hit | undefined) {
     if (!h) return
     open = false
+    dlg.close()
+    await tick() // release modal focus before selecting and focusing the destination
     h.kind === 'cve' ? oncve(h.key) : onvendor(h.key)
   }
   async function keys(e: KeyboardEvent) {

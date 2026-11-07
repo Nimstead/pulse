@@ -1,16 +1,11 @@
 <script lang="ts">
-  import { compareSnapshots, handover, type Snapshot } from '../lib/snapshot'
+  import { handover, type Snapshot, type Change } from '../lib/snapshot'
   import { dateShort, num } from '../lib/data'
 
-  let { snapshot, baseline, includeDeadlines, openCve }: {
-    snapshot: Snapshot; baseline: Snapshot | null; includeDeadlines: boolean; openCve: (id: string) => void
+  let { snapshot, baseline, comparison, includeDeadlines, openCve }: {
+    snapshot: Snapshot; baseline: Snapshot | null; comparison: { changes: Change[]; error: string }; includeDeadlines: boolean; openCve: (id: string) => void
   } = $props()
   let shown = $state(50)
-  const comparison = $derived.by(() => {
-    if (!baseline) return { changes: [], error: '' }
-    try { return { changes: compareSnapshots(baseline, snapshot, includeDeadlines), error: '' } }
-    catch (e) { return { changes: [], error: (e as Error).message } }
-  })
   const text = $derived(handover(snapshot, baseline, includeDeadlines))
   const date = $derived(snapshot.generated.slice(0, 10))
   const modelChanged = $derived(baseline && baseline.sources.epssModel !== snapshot.sources.epssModel)
@@ -18,7 +13,7 @@
 </script>
 
 <section class="snapshot-report" aria-label="Snapshot details and handover preview">
-  <details class="report-details">
+  <details class="report-details" id="snapshot-comparison">
     <summary>{baseline ? 'Compare with the saved snapshot' : 'Snapshot details and handover preview'}</summary>
     <p>Save this analysis as a dated JSON file. Reload it on your next visit to refresh the signals and see what changed. Federal due dates are {includeDeadlines ? 'included' : 'excluded'}.</p>
     <p class="sources">Current public data: {dateShort(date)} · NVD through {dateShort(snapshot.sources.nvd.slice(0, 10))} · KEV {snapshot.sources.kev} · EPSS {snapshot.sources.epss ? dateShort(snapshot.sources.epss) : 'date unavailable'}</p>
@@ -77,7 +72,7 @@
   .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0.5rem 1rem; border: 2px solid var(--rule-strong); background: var(--paper); color: var(--ink); font: 700 0.875rem var(--sans); cursor: pointer; }
   .btn:hover { background: var(--ink); color: var(--paper); }
   details { margin-top: 0.75rem; }
-  summary { cursor: pointer; padding: 0.75rem 0; font-size: 0.9375rem; font-weight: 600; }
+  summary { cursor: pointer; padding: 0.75rem 0; font-size: 0.9375rem; font-weight: 600; scroll-margin-top: 4rem; }
   .handover-text { padding: 1rem; background: var(--shade); border: 1px solid var(--rule); max-height: 24rem; overflow: auto; }
   pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 400 0.8125rem/1.6 var(--mono); }
   @media (max-width: 560px) { .changes li { grid-template-columns: minmax(0, 1fr); } .handover-head > div:first-child { flex-basis: 100%; } }

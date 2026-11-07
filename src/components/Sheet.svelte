@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import { ui } from '../lib/state.svelte'
   import { shard, num, pct, epssPct, dateLong, daysBetween, titleCase, productName, SEV_COLOR, type Kev, type CveRow } from '../lib/data'
 
@@ -12,6 +13,7 @@
   let attempt = $state(0)
   let privateRecord = $state(false)
   let closing = $state(false)
+  let closeTimer: ReturnType<typeof setTimeout> | undefined
   const kev = $derived(id ? kevById.get(id) : undefined)
   const epssScore = $derived(row?.[8] ?? kev?.epss ?? null)
   const severity = $derived(row?.[4] || kev?.sev)
@@ -19,9 +21,17 @@
 
   $effect(() => {
     attempt
-    if (!id) return
+    clearTimeout(closeTimer)
+    closing = false
     row = undefined
     failed = false
+    if (!id) {
+      if (dlg.open) {
+        dlg.close()
+        document.getElementById('main')?.focus({ preventScroll: true })
+      }
+      return
+    }
     if (!dlg.open) dlg.showModal()
     const want = id, mine = local?.(want)
     privateRecord = mine !== undefined
@@ -35,8 +45,14 @@
     if (closing || !dlg.open) return
     closing = true
     // leave the way it came in: slide back out to the right, then close
-    setTimeout(() => { dlg.close(); closing = false; id = ''; after?.() }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 220)
+    closeTimer = setTimeout(() => { dlg.close(); closing = false; id = ''; after?.() }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 220)
   }
+  onDestroy(() => clearTimeout(closeTimer))
+  const provenance = $derived([
+    row && nvdDate ? `NVD record · feed through ${dateLong(nvdDate)}` : '',
+    epssDate ? `EPSS score dated ${dateLong(epssDate)}` : '',
+    severity && !row?.[4] ? 'Severity from the KEV snapshot' : '',
+  ].filter(Boolean).join(' · '))
   const steps = $derived.by(() => {
     const s: { label: string; date: string; note?: string; red?: boolean }[] = []
     const pub = row?.[1] ?? kev?.pub
@@ -52,7 +68,7 @@
   })
 </script>
 
-<dialog bind:this={dlg} class:closing onclose={() => (id = '')} oncancel={(e) => { e.preventDefault(); close() }}
+<dialog bind:this={dlg} class:closing onclose={() => { if (!dlg.open) id = '' }} oncancel={(e) => { e.preventDefault(); close() }}
   onclick={(e) => { if (e.target === dlg) close() }} aria-labelledby="sheet-title">
   <div class="panel">
     <header>
@@ -85,7 +101,7 @@
         {#if row?.[2]}<span class="chip">NVD: {row[2]}</span>{/if}
       </div>
 
-      <p class="provenance">{#if row && nvdDate}NVD record · feed through {dateLong(nvdDate)}{#if epssDate} · {/if}{/if}{#if epssDate}EPSS score dated {dateLong(epssDate)}{/if}{#if severity && !row?.[4]} · Severity from the KEV snapshot{/if}</p>
+      <p class="provenance">{provenance}</p>
 
       {#if kev?.name}<p class="name">{kev.name}</p>{/if}
       {#if row?.[9]}<p class="desc">{row[9]}</p>{/if}

@@ -15,7 +15,7 @@
   let dataOpen = $state(false)
   let page = $state(0)
   const pageSize = 50
-  const dataRows = $derived(dataOpen && csv ? csv() : [])
+  const dataRows = $derived(csv ? csv() : [])
   const pageCount = $derived(Math.max(1, Math.ceil(dataRows.length / pageSize)))
   const currentPage = $derived(Math.min(page, pageCount - 1))
   const pageRows = $derived(dataRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize))
@@ -40,11 +40,12 @@
     </div>
     <div class="actions" data-no-export>
       <button onclick={png} disabled={status === '…'} aria-label="Copy Figure {n} as PNG" title="Copy figure as PNG for slides">{status === 'Failed' ? 'Retry PNG' : status || 'Copy PNG'}</button>
-      {#if csv}<button onclick={() => downloadCsv(csv(), name)} aria-label="Download Figure {n} data as CSV" title="Download the figure's data">CSV</button>{/if}
+      {#if csv}<button onclick={() => downloadCsv(dataRows, name)} disabled={!dataRows.length} aria-describedby={!dataRows.length ? `${dataId}-empty` : undefined} aria-label="Download Figure {n} data as CSV" title="Download the figure's data">CSV</button>{/if}
       <span class="sr-only" aria-live="polite">{status === 'Copied' ? `Figure ${n} copied` : status === 'Saved' ? `Figure ${n} saved as PNG` : status === 'Failed' ? 'Copy failed' : ''}</span>
     </div>
   </figcaption>
-  {#if status === 'Failed'}<p class="export-error" role="alert" data-no-export>Could not create this PNG. Try again with “Retry PNG”{csv ? ', or download the data as CSV' : ''}.</p>{/if}
+  {#if csv && !dataRows.length}<p class="export-error" id="{dataId}-empty" data-no-export>No rows to export as CSV.</p>{/if}
+  {#if status === 'Failed'}<p class="export-error" role="alert" data-no-export>Could not create this PNG. Try again with “Retry PNG”{dataRows.length ? ', or download the data as CSV' : ''}.</p>{/if}
   {#if legend}<div class="legend">{@render legend()}</div>{/if}
   <div class="body">{@render children()}</div>
   {#if notes}<div class="notes">{@render notes()}</div>{/if}
@@ -83,9 +84,9 @@
     font: 700 0.8125rem/1.1 var(--sans); color: var(--ink); cursor: pointer; min-width: 5rem;
     transition: background-color 150ms, color 150ms, border-color 150ms;
   }
-  .actions button:hover { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-  .actions button:active { transform: translateY(1px); }
-  .actions button:disabled { cursor: wait; }
+  .actions button:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .actions button:active:not(:disabled) { transform: translateY(1px); }
+  .actions button:disabled { background: var(--shade); border-color: var(--shade); color: var(--disabled); cursor: default; }
   .export-error { margin: 0.75rem 0 0; color: var(--ink-2); font-size: 0.875rem; }
   .legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.25rem; margin-top: 0.75rem; font-size: 0.8125rem; color: var(--ink-2); }
   .body { margin-top: 0.85rem; position: relative; }

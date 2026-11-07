@@ -88,7 +88,14 @@
     scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }
   const openCve = (id: string) => (ui.cve = id)
-  const openVendor = (key: string) => { ui.vendor = key; go('vendors') }
+  async function openVendor(key: string) {
+    ui.vendor = key
+    go('vendors')
+    await tick()
+    const profile = document.getElementById('vendor-profile')
+    profile?.focus({ preventScroll: true })
+    profile?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  }
   async function showDescriptions() {
     go('watchlist')
     await tick()
