@@ -4,7 +4,7 @@
   import { chartKeyIndex } from '../lib/chart-key'
   import { num } from '../lib/data'
 
-  type L = { key: string; label: string; values: (number | null)[]; tone: 'focus' | 'prior' | 'faint'; color?: string }
+  type L = { key: string; label: string; endLabel?: string; values: (number | null)[]; tone: 'focus' | 'prior' | 'faint'; color?: string }
   let { labels, lines, label, height = 280 }: {
     labels: string[]; lines: L[]; label: string; height?: number
   } = $props()
@@ -68,7 +68,7 @@
       {/if}
     {/each}
     {#each ends as e (e.l.key)}
-      <text x={x(e.i) + 8} y={e.y} dy="0.32em" class="end {e.l.tone}" style:fill={e.l.color}>{e.l.label}</text>
+      <text x={x(e.i) + 8} y={e.y} dy="0.32em" class="end {e.l.tone}" style:fill={e.l.color}>{e.l.endLabel ?? e.l.label}</text>
     {/each}
   </svg>
   <p class="sr-only" id={instructionsId}>Use Left and Right Arrow to step through the data, Home and End to jump to the first and last value. Escape clears the selected value.</p>

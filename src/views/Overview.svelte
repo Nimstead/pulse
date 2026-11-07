@@ -217,12 +217,12 @@
       <div>
         <h4 class="ph">CVEs published, last 12 months <b>{cUp >= 0 ? '+' : ''}{cUp}% in a year</b></h4>
         <Lines label="CVEs published, rolling 12 months" labels={indexed.labels} height={220}
-          lines={[{ key: 'c', label: num(indexed.cvesN.at(-1)!), values: indexed.cvesN, tone: 'focus', color: 'var(--vol)' }]} />
+          lines={[{ key: 'c', label: 'CVEs', endLabel: num(indexed.cvesN.at(-1)!), values: indexed.cvesN, tone: 'focus', color: 'var(--vol)' }]} />
       </div>
       <div>
         <h4 class="ph kevh">Added to KEV, last 12 months <b>{kUp >= 0 ? '+' : ''}{kUp}% in a year</b></h4>
         <Lines label="KEV listings, rolling 12 months" labels={indexed.labels} height={220}
-          lines={[{ key: 'k', label: num(indexed.kevN.at(-1)!), values: indexed.kevN, tone: 'focus', color: 'var(--kev)' }]} />
+          lines={[{ key: 'k', label: 'KEV listings', endLabel: num(indexed.kevN.at(-1)!), values: indexed.kevN, tone: 'focus', color: 'var(--kev)' }]} />
       </div>
     </div>
     {#snippet notes()}{monthShort(indexed.to)}: {num(indexed.cvesN.at(-1)!)} CVEs in 12 months against {num(indexed.c0)} a year earlier, and {num(indexed.kevN.at(-1)!)} KEV listings against {num(indexed.k0)}.{#if cUp > kUp}{' '}Volume has grown far faster than confirmed exploitation.{/if}{/snippet}

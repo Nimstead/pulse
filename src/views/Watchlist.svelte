@@ -56,7 +56,7 @@
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
   import Rows from '../components/Rows.svelte'
-  import { load, num, pct, epssPct, dateShort, addDays, kvp, sum, SEV, SEV_COLOR, share, epssBands, titleCase, vp, type Kev, type Epss, type Month, type Ranked, type Meta } from '../lib/data'
+  import { load, num, pct, epssPct, dateShort, addDays, kvp, sum, SEV, SEV_COLOR, share, epssBands, titleCase, productName, vp, type Kev, type Epss, type Month, type Ranked, type Meta } from '../lib/data'
   import { parseIds, analyse, filterItems, TIERS, MAX_IDS, type IdxRow } from '../lib/watchlist'
 
   let { months, kevById, epss, cwe, cweNames: names, shards, indexParts, today, openCve, meta }: {
@@ -68,6 +68,7 @@
   let busy = $state(false)
   let analysisDone = $state(0)
   let err = $state('')
+  let analysisError = $state('')
   let dragging = $state(false)
   let shown = $state(50)
   let filter = $state('')
@@ -122,7 +123,7 @@
     analysisController = controller
     submittedKey = key
     analysisDone = 0
-    busy = true; err = ''
+    busy = true; err = ''; analysisError = ''
     try {
       // every part, whatever is on the list; plain fetch, not the load() cache: the 45 MB index is dropped once the list is joined
       const parts = await Promise.all(Array.from({ length: indexParts }, async (_, i) => {
@@ -139,7 +140,7 @@
       filter = ''
       priority = 'all'
     } catch (e) {
-      if (!controller.signal.aborted && run === analysisRun) err = `Analysis failed: ${String((e as Error).message ?? e)}. Your list is still only in this browser; retry when the connection is available.`
+      if (!controller.signal.aborted && run === analysisRun) analysisError = `Analysis failed: ${String((e as Error).message ?? e)}. Your list is still only in this browser. Use Analyse to retry.`
     } finally {
       if (run === analysisRun) { analysisController = null; busy = false }
     }
@@ -152,7 +153,7 @@
     cancelDescs()
     undo = watch.example && !watch.text ? null : { ...watch, dl: { running: false, done: 0, total: 0, error: '' } }
     Object.assign(watch, { text: '', ids: [], items: [], missing: [], rejected: [], desc: {}, descFor: '', dl: { running: false, done: 0, total: 0, error: '' }, example: false, baseline: null })
-    err = ''
+    err = ''; analysisError = ''
   }
   onDestroy(() => { cancelAnalysis(); exampleRun++; fileReadRun++ })
   async function readFiles(files: FileList | null | undefined) {
@@ -239,7 +240,8 @@
   const weaknesses = $derived(group((i) => (i.row[5]?.startsWith('NVD-CWE') ? '' : i.row[5]), (k) => cweNames.get(k) ?? k, (k) => (cweNames.has(k) ? k : '')))
 
   const csvRows = () => filteredItems.map(({ row: r, kev, tier }) => ({
-    snapshot_date: today, priority: TIERS[tier].label, cve: r[0], published: r[1], status: r[2], severity: r[4], score: r[3], vendor: r[6], product: r[7], cwe: r[5],
+    snapshot_date: today, priority: TIERS[tier].label, cve: r[0], published: r[1], status: r[2], severity: r[4], score: r[3],
+    vendor: kev?.vendor || titleCase(r[6]), product: kev?.vendor ? kev.product : productName(r[6], r[7]), attribution: kev?.vendor ? 'CISA KEV' : 'NVD', nvd_vendor: r[6], nvd_product: r[7], cwe: r[5],
     epss: r[8], epss_percentile: r[9], in_kev: !!kev, kev_added: kev?.added ?? '', ...(ui.kevDeadlines ? { kev_due: kev?.due ?? '' } : {}), ransomware: kev?.ransom ?? false,
     description: watch.desc[r[0]] ?? '',
   }))
@@ -280,12 +282,13 @@
         onchange={(e) => { restoreSnapshot(e.currentTarget.files?.[0]); e.currentTarget.value = '' }} /></label>
       <p>Restore a downloaded snapshot’s CVE list and compare it with today’s public data. The file is read here, never uploaded.</p>
     </div>
-    {#if !ready}<p class="analysis-progress" role="status">Preparing private analysis. File imports will be available shortly.</p>{/if}
+    {#if !ready}<div id="analysis-startup" class="analysis-progress" role="status">Preparing private analysis. File imports will be available shortly.</div>{/if}
     {#if watch.baseline}<p class="analysis-progress">Comparing with public data from {dateShort(watch.baseline.generated.slice(0, 10))}. You can edit the restored list before analysing again. <button class="linklike" onclick={() => { fileReadRun++; watch.baseline = null }}>Remove comparison</button></p>{/if}
     {#if busy}<p class="analysis-progress" role="status">Loading public index: {num(analysisDone)} of {num(indexParts)} files. The same files are requested for every list.</p>{/if}
-    {#if !busy && !stale && !watch.example && watch.ids.length}
+    {#if !busy && !analysisError && !stale && !watch.example && watch.ids.length}
       <div class="analysis-ready"><p role="status">Analysis ready: {num(n)} matched, {num(watch.missing.length)} not found, {num(watch.rejected.length)} rejected.</p><button class="linklike" onclick={viewResults}>View results</button></div>
     {/if}
+    {#if analysisError}<p class="err" role="alert">{analysisError}{#if !stale && watch.ids.length} {watch.example ? 'The worked example is still shown below.' : `Previous results are still shown below, using public data from ${dateShort(today)}.`}{/if}</p>{/if}
     {#if err}<p class="err" role="alert">{err}</p>{/if}
   </div>
   <aside class="privacy">

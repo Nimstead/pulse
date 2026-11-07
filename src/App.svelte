@@ -20,6 +20,7 @@
 
   let { initialData: data }: { initialData: Data } = $props()
   let theme = $state<string>(typeof document === 'undefined' ? '' : document.documentElement.dataset.theme ?? '')
+  let systemDark = $state(false)
   try { theme = localStorage.getItem('theme') ?? '' } catch {}
   $effect(() => {
     if (theme) document.documentElement.dataset.theme = theme
@@ -28,12 +29,16 @@
   })
   // another tab switched theme
   onMount(() => {
+    const preference = matchMedia('(prefers-color-scheme: dark)')
+    const changed = () => { systemDark = preference.matches }
+    changed()
+    preference.addEventListener('change', changed)
     const storage = (e: StorageEvent) => { if (e.key === 'theme' || e.key === null) theme = e.newValue ?? '' }
     addEventListener('storage', storage)
     readHash()
-    return () => removeEventListener('storage', storage)
+    return () => { removeEventListener('storage', storage); preference.removeEventListener('change', changed) }
   })
-  const dark = $derived(theme === 'dark' || (!theme && typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches))
+  const dark = $derived(theme === 'dark' || (!theme && systemDark))
 
   const kevById = $derived(new Map((data?.kev ?? []).map((k) => [k.id, k])))
   const today = $derived(data ? data.meta.generated.slice(0, 10) : '')
@@ -89,6 +94,7 @@
   }
   const openCve = (id: string) => (ui.cve = id)
   async function openVendor(key: string) {
+    ui.cve = ''
     ui.vendor = key
     go('vendors')
     await tick()

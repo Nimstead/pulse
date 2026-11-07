@@ -27,7 +27,7 @@
 <style>
   .source-status { border-bottom: 1px solid var(--rule); color: var(--ink-3); font-size: 0.8125rem; }
   summary { padding: 0.85rem 0; cursor: pointer; }
-  summary span { margin-right: 1rem; }
+  summary span { display: inline-block; margin-right: 1rem; }
   summary .label { color: var(--ink); text-decoration: underline; text-underline-offset: 0.2em; }
   summary:hover .label { text-decoration-thickness: 2px; }
   strong { display: inline-block; color: var(--ink); }

@@ -141,3 +141,7 @@ td.nw { white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+/* Startup recovery is created before Svelte mounts, so it needs an unscoped control. */
+.startup-status { padding-block: 1rem; }
+.startup-retry { min-height: 2.75rem; padding: 0.5rem 1.1rem; border: 2px solid var(--rule-strong); border-radius: 0; background: var(--paper); color: var(--ink); font: 700 0.875rem var(--sans); cursor: pointer; }
+.startup-retry:hover { background: var(--ink); color: var(--paper); }

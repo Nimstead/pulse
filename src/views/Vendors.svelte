@@ -36,8 +36,8 @@
   const cby = $derived(ui.cweSort === 'cves' ? 'cves' : 'kev')
   const cRows = $derived(rank(cwe, 15, (r) => r.name ?? r.key, (r) => r.key.startsWith('NVD-CWE'), cby, (r) => kevByCwe.get(r.key) ?? 0).map((r) => ({ ...r, sub: r.key })))
 
-  const kevCwe = $derived([...cwe.rows].filter((r) => !r.key.startsWith('NVD-CWE')).map((r) => ({ ...r, kev: kevByCwe.get(r.key) ?? 0 })).sort((x, y) => y.kev - x.kev)[0])
-  const mostKev = $derived(vendors.rows.map((r) => ({ ...r, kev: vendorKevN(r.key) })).sort((x, y) => y.kev - x.kev).slice(0, 2))
+  const leadingCwe = $derived(rank(cwe, 2, (r) => r.name ?? r.key, (r) => r.key.startsWith('NVD-CWE'), 'kev', (r) => kevByCwe.get(r.key) ?? 0).filter((r) => r.kev > 0))
+  const mostKev = $derived(rank(vendors, 2, (r) => titleCase(r.key), undefined, 'kev', (r) => vendorKevN(r.key)).filter((r) => r.kev > 0))
   const current = $derived(vendors.rows.find((r) => r.key === ui.vendor) ?? null)
   const vendorKev = $derived(current ? kev.filter((k) => k.nv === current.key) : [])
   $effect(() => { if (!ui.vendor && vRows.length) ui.vendor = vRows[0].key })
@@ -57,7 +57,11 @@
 
 <header class="view-head">
   <h2>Vendors and weaknesses</h2>
-  {#if mostKev.length === 2 && cRows.length}<p class="insight"><b>{titleCase(mostKev[0].key)}</b> had the most CVEs added to KEV from {monthShort(m0)} to {monthShort(m1)} ({num(mostKev[0].kev)}), ahead of {titleCase(mostKev[1].key)} ({num(mostKev[1].kev)}). {#if kevCwe}The most common weakness across all KEV listings in the period is <b>{kevCwe.name ?? kevCwe.key}</b> ({num(kevCwe.kev)}).{/if}</p>{/if}
+  {#if !kevIn.length}
+    <p class="insight">No KEV listings from {monthShort(m0)} to {monthShort(m1)}. CISA began the catalogue in November 2021. The CVE counts and lifetime vendor profiles remain available below.</p>
+  {:else if mostKev.length}
+    <p class="insight"><b>{mostKev[0].label}</b> {mostKev[1]?.kev === mostKev[0].kev ? 'is among the vendors with the most' : 'had the most'} CVEs added to KEV from {monthShort(m0)} to {monthShort(m1)} ({num(mostKev[0].kev)}){#if mostKev[1] && mostKev[1].kev < mostKev[0].kev}, ahead of {mostKev[1].label} ({num(mostKev[1].kev)}){/if}. {#if leadingCwe.length}<b>{leadingCwe[0].label}</b> {leadingCwe[1]?.kev === leadingCwe[0].kev ? 'is among the most common weaknesses' : 'is the most common weakness'} across KEV listings in the period ({num(leadingCwe[0].kev)}).{/if}</p>
+  {/if}
   <p>Where CVEs come from, and the classes of mistake behind them. Select a vendor for its products and exploited CVEs.</p>
 </header>
 <div class="view-period"><Period {months} compact /></div>

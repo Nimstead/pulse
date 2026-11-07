@@ -106,7 +106,7 @@
   <div><div class="kicker">New KEV listings</div><div class="big red">{num(newKev.length)}</div><div class="cmp"><b>{num(prevKevN)}</b> the {windowDays} days before{newKev.some((k) => k.ransom) ? ` · ${newKev.filter((k) => k.ransom).length} with ransomware use` : ''}</div></div>
   {#if ui.kevDeadlines}<div><div class="kicker">KEV due today</div><div class="big">{num(todayN)}</div><div class="cmp">US federal deadlines falling today</div></div>
   <div><div class="kicker">KEV due dates, next {windowDays} days</div><div class="big">{num(dueSoon.length)}</div><div class="cmp">Including today. {num(passedWindow.length)} KEV due dates passed in this window.</div></div>{/if}
-  <div><div class="kicker">Elevated EPSS</div><div class="big">{num(likely.length)}</div><div class="cmp">10% or more, of {num(severeN)} new Critical or High{#if prevSevereN != null}{' '}({num(prevSevereN)} the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); document.getElementById('fresh')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></div></div>
+  <div><div class="kicker">Elevated EPSS</div><div class="big">{num(likely.length)}</div><div class="cmp">10% or more, of {num(severeN)} new Critical or High{#if prevSevereN != null}{' '}({num(prevSevereN)} the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); const target = document.getElementById('fresh'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></div></div>
 </div>
 
 {#if start.length}
@@ -133,7 +133,7 @@
 {/if}
 
 
-<div id="fresh" class="anchor"></div>
+<section id="fresh" class="anchor" aria-label="Fresh Critical and High CVEs, by product" tabindex="-1">
 <Figure n={15} name="recent-critical" title="Fresh Critical and High CVEs, by product" sub="Published in the last {windowDays} days: one row per product, ranked by its highest available EPSS. {likely.length ? `${num(likely.length)} ${likely.length === 1 ? 'has' : 'have'} EPSS of 10% or more.` : 'None with an available EPSS has reached 10%.'} EPSS is a probability signal, not a finding of exposure or exploitation."
   csv={() => hot.map((r) => ({ cve: r[0], published: r[1], severity: r[4], score: r[3], vendor: r[6], product: r[7], epss: r[8] }))}>
   {#if hotGroups.length > productsShown}<p class="table-scope">First {num(productsShown)} of {num(hotGroups.length)} products shown. CSV includes all matching CVEs.</p>{/if}
@@ -169,6 +169,7 @@
   </div>
   {#if hotGroups.length > productsShown}<button class="linklike more" data-no-export onclick={() => productsShown += 15}>Show more products ({num(hotGroups.length - productsShown)} remaining)</button>{/if}
 </Figure>
+</section>
 
 <Figure n={16} name="recent-published" title="CVEs published per day" sub="Published CVEs, split by whether a severity score is available"
   csv={() => days.map(([d, n, s]) => ({ date: d, published: n, scored: s }))}>
