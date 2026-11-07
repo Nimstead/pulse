@@ -38,12 +38,22 @@ Any static host works too: run `npm run data && npm run build` and serve `dist/`
 
 ## Privacy: "Your CVEs"
 
-The **Your CVEs** view analyses a pasted or uploaded list entirely in the browser. The list is never sent anywhere or saved:
+The **Your CVEs** view analyses a pasted or selected local list entirely in the browser. The list is never uploaded or saved automatically:
 
 - Every visitor makes the same requests. The view opens on a fixed worked example (`data/example.json`, the same 14 well-known CVEs for everyone). The analysis fetches every part of the index, `data/index-0.json` onwards (every CVE without its description), and "Download descriptions" fetches *all* shards in a fixed order. Shards are never fetched per ID, because the file name would reveal the ID's range.
 - A Content-Security-Policy in `index.html` allows same-origin requests only. Fonts are bundled (`@fontsource-variable/*`), not loaded from Google.
 - The list lives in memory only: no localStorage, URL or hash. Opening a listed CVE's case record uses the in-memory row.
 - Keep it that way: do not add analytics, third-party scripts or per-ID fetches to this view.
+
+### Snapshots and personalised handovers
+
+After analysing your own list, **Download snapshot** saves a versioned JSON file containing all submitted CVE IDs (including missing and rejected records), public KEV/EPSS/CVSS observations and feed dates. It excludes raw scanner text and downloaded descriptions. Federal due dates are included only when that control is on. Keep the file private: the choice of CVEs can reveal information about your environment.
+
+**Load snapshot** reads that file locally, replaces the input with its CVE IDs, fetches the same complete public index used for every analysis, and compares refreshed observations with the saved ones. Edit the restored list and analyse again to compare membership changes too. Comparison covers KEV listings, ransomware flags, EPSS (including crossings of the 10% threshold), severity, product attribution, record availability, and optional federal due dates. Due dates can be compared only if both snapshots included them. Model changes and newer-than-current snapshots are called out. Same-day reloads may show no change; this is a daily snapshot, not live monitoring. Imported observations are user-supplied, not authenticated historical evidence.
+
+**Copy handover** and **Download handover** prepare plain text for the full analysed list, independent of table filters. They include a priority queue, missing/rejected IDs, source dates, comparison when available, and checks for the next analyst. Removal from an input list never implies remediation, and missing scores are never treated as zero risk.
+
+No account, backend, browser storage or per-CVE request is added. Reloading the page clears the session; Clear removes the list and baseline from the page with one in-memory undo step. Downloaded files and clipboard copies remain under the user's control. Private list data is never added to the URL. Opening public CVE links explicitly still sends that selected ID to the linked site.
 
 ## Credit
 

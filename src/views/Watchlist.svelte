@@ -1,11 +1,13 @@
 <script lang="ts" module>
   import type { CveRow } from '../lib/data'
   import type { Item } from '../lib/watchlist'
+  import type { Snapshot } from '../lib/snapshot'
 
   /** The private list and its analysis. Memory only: never written to storage, the URL or the network. */
   export const watch = $state({
     text: '', ids: [] as string[], items: [] as Item[], missing: [] as string[], rejected: [] as string[],
     desc: {} as Record<string, string>, descFor: '', dl: { running: false, done: 0, total: 0, error: '' }, example: false,
+    baseline: null as Snapshot | null,
   })
   let exampleShown = false // once per page load: after Clear, the view stays empty
   let ctl: AbortController | null = null
@@ -46,16 +48,18 @@
 
 <script lang="ts">
   import DeadlineControl from '../components/DeadlineControl.svelte'
+  import SnapshotReport from '../components/SnapshotReport.svelte'
+  import { createSnapshot, parseSnapshot } from '../lib/snapshot'
   import { ui } from '../lib/state.svelte'
   import { tick, onDestroy, onMount } from 'svelte'
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
   import Rows from '../components/Rows.svelte'
-  import { load, num, pct, epssPct, dateShort, addDays, kvp, sum, SEV, SEV_COLOR, share, epssBands, titleCase, vp, type Kev, type Epss, type Month, type Ranked } from '../lib/data'
+  import { load, num, pct, epssPct, dateShort, addDays, kvp, sum, SEV, SEV_COLOR, share, epssBands, titleCase, vp, type Kev, type Epss, type Month, type Ranked, type Meta } from '../lib/data'
   import { parseIds, analyse, filterItems, TIERS, MAX_IDS, type IdxRow } from '../lib/watchlist'
 
-  let { months, kevById, epss, cwe, cweNames: names, shards, indexParts, today, openCve }: {
-    months: Month[]; kevById: Map<string, Kev>; epss: Epss; cwe: Ranked[]; cweNames: Record<string, string>; shards: string[]; indexParts: number; today: string; openCve: (id: string) => void
+  let { months, kevById, epss, cwe, cweNames: names, shards, indexParts, today, openCve, meta }: {
+    months: Month[]; kevById: Map<string, Kev>; epss: Epss; cwe: Ranked[]; cweNames: Record<string, string>; shards: string[]; indexParts: number; today: string; openCve: (id: string) => void; meta: Meta
   } = $props()
 
   const parsed = $derived(parseIds(watch.text))
@@ -129,7 +133,7 @@
     cancelAnalysis()
     cancelDescs()
     undo = watch.example && !watch.text ? null : { ...watch, dl: { running: false, done: 0, total: 0, error: '' } }
-    Object.assign(watch, { text: '', ids: [], items: [], missing: [], rejected: [], desc: {}, descFor: '', dl: { running: false, done: 0, total: 0, error: '' }, example: false })
+    Object.assign(watch, { text: '', ids: [], items: [], missing: [], rejected: [], desc: {}, descFor: '', dl: { running: false, done: 0, total: 0, error: '' }, example: false, baseline: null })
     err = ''
   }
   onDestroy(() => { cancelAnalysis(); exampleRun++; fileReadRun++ })
@@ -148,6 +152,24 @@
     }
   }
 
+  async function restoreSnapshot(file: File | undefined) {
+    if (!file) return
+    const token = ++fileReadRun, initialText = watch.text
+    if (file.size > 10_000_000) { err = 'Snapshot exceeds 10 MB. Choose a Pulse snapshot with at most 10,000 CVEs.'; return }
+    try {
+      const saved = parseSnapshot(await file.text())
+      if (token !== fileReadRun || watch.text !== initialText) return
+      exampleRun++
+      cancelAnalysis()
+      cancelDescs()
+      undo = null
+      Object.assign(watch, { baseline: saved, text: saved.findings.map(f => f.id).join('\n'), ids: [], items: [], missing: [], rejected: [], desc: {}, descFor: '', example: false })
+      await run()
+    } catch (e) {
+      if (token === fileReadRun) err = e instanceof Error ? e.message : 'Could not read this snapshot. Choose a Pulse JSON snapshot and try again.'
+    }
+  }
+
   // the worked example is described as an example, never as the visitor's own list
   const your = $derived(watch.example ? 'these' : 'your'), Your = $derived(watch.example ? 'These' : 'Your'), yourList = $derived(watch.example ? 'the example' : 'your list')
   const items = $derived(watch.items)
@@ -160,6 +182,7 @@
   const unscoredN = $derived(items.filter((i) => !i.row[4]).length)
   const descReady = $derived(watch.descFor !== '' && watch.descFor === watch.ids.join())
   const stale = $derived(watch.ids.length > 0 && !watch.example && parsed.ids.join() !== watch.ids.join())
+  const snapshot = $derived(!watch.example && watch.ids.length && !stale ? createSnapshot(watch, meta, ui.kevDeadlines) : null)
   const filteredItems = $derived(filterItems(items, filter, priority === 'all' ? null : Number(priority)))
 
   const mineMix = $derived(SEV.map((s) => items.filter((i) => i.row[4] === s.full).length))
@@ -218,12 +241,18 @@
       </button>
       <label class="btn">Choose file<input type="file" class="sr-only" multiple accept=".txt,.csv,.json,.xml,.md,text/*"
         onchange={(e) => { readFiles(e.currentTarget.files); e.currentTarget.value = '' }} /></label>
-      <button class="btn" onclick={clear} disabled={!watch.text && !n}>Clear</button>
+      <button class="btn" onclick={clear} disabled={!watch.text && !n && !watch.baseline}>Clear</button>
       <span class="status" aria-live="polite">
         {#if watch.text && !parsed.ids.length}No CVE IDs found. IDs look like CVE-2024-3400.
         {:else if parsed.ids.length}{num(parsed.ids.length)} unique ID{parsed.ids.length === 1 ? '' : 's'} found{parsed.dupes ? `, ${num(parsed.dupes)} duplicate${parsed.dupes === 1 ? '' : 's'} ignored` : ''}{parsed.capped ? `. Only the first ${num(MAX_IDS)} are used` : ''}{stale ? '. The list has changed since the last analysis' : ''}.{/if}
       </span>
     </div>
+    <div class="snapshot-load">
+      <label class="btn">Load snapshot<input type="file" class="sr-only" accept=".json,application/json"
+        onchange={(e) => { restoreSnapshot(e.currentTarget.files?.[0]); e.currentTarget.value = '' }} /></label>
+      <p>Restore a downloaded snapshot’s CVE list and compare it with today’s public data. The file is read here, never uploaded.</p>
+    </div>
+    {#if watch.baseline}<p class="analysis-progress">Comparing with public data from {dateShort(watch.baseline.generated.slice(0, 10))}. You can edit the restored list before analysing again. <button class="linklike" onclick={() => { fileReadRun++; watch.baseline = null }}>Remove comparison</button></p>{/if}
     {#if busy}<p class="analysis-progress" role="status">Loading public index: {num(analysisDone)} of {num(indexParts)} files. The same files are requested for every list.</p>{/if}
     {#if err}<p class="err" role="alert">{err}</p>{/if}
   </div>
@@ -232,7 +261,8 @@
     <ul>
       <li>The analysis runs on this page. Every visitor downloads the same public data files, so the site never learns which CVEs you entered.</li>
       <li>The site's security policy blocks this page from contacting any other server.</li>
-      <li>Nothing is saved. Reloading or closing the tab, or pressing Clear, wipes the list.</li>
+      <li>Nothing is saved automatically. Reloading or closing the tab wipes this session. Clear removes it from the page, with one undo step.</li>
+      <li>Snapshots and handovers are saved only when you download them. They contain your CVE list: keep them private. Clear does not delete downloaded files or clipboard copies.</li>
       <li>Two things are outside the page's control: browser extensions can read any page, and the NVD, CVE.org and CISA links in a case record take that one ID to that site if you click them.</li>
     </ul>
   </aside>
@@ -244,6 +274,8 @@
     <p>The textarea contains {num(parsed.ids.length)} unique CVE IDs. The previous result used {num(watch.ids.length)} IDs and contains {num(n)} analyzed CVEs, plus {num(watch.missing.length)} not found and {num(watch.rejected.length)} rejected. Reanalyse to show results. The previous analysis remains in this tab, but its charts and exports are unavailable until the input matches again or you reanalyse.</p>
   </section>
 {:else if watch.ids.length}
+  {#if n}<div class="result-controls"><DeadlineControl /></div>{/if}
+  {#if snapshot && !busy}<SnapshotReport {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
   {#if !n}
     <section class="no-match" role="status">
       <h3>No CVEs matched this analysis</h3>
@@ -258,7 +290,6 @@
     {#if watch.missing.length || watch.rejected.length}<span class="aside">{[watch.missing.length && `${num(watch.missing.length)} not found`, watch.rejected.length && `${num(watch.rejected.length)} rejected`].filter(Boolean).join(', ')}; <a href="#watch-unmatched">see the end of the page</a>.</span>{/if}
   </p>
 
-  <div class="result-controls"><DeadlineControl /></div>
   <div class="tiles">
     <div><div class="kicker">Exploited (in KEV)</div><div class="big red">{num(kevN)}</div><div class="cmp">{pct(kevN / n)} of {yourList}</div></div>
     <div><div class="kicker">Known ransomware use</div><div class="big" class:red={ransomN > 0}>{num(ransomN)}</div><div class="cmp">KEV entries CISA links to ransomware</div></div>
@@ -396,6 +427,8 @@
 {/if}
 
 <style>
+  .snapshot-load { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; padding-top: 0.75rem; border-top: 1px solid var(--rule); }
+  .snapshot-load p { flex: 1 1 17rem; margin: 0; max-width: 65ch; font-size: 0.875rem; color: var(--ink-2); }
   .result-controls { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
   .intake { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); margin-bottom: 2rem; }
   .field { display: grid; gap: 0.5rem; align-content: start; }

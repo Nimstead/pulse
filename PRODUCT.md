@@ -37,6 +37,7 @@ Read on laptops and shared screens in meetings; charts are copied into slides an
 
 - Sources: NVD CVE JSON 2.0 yearly feeds, CISA Known Exploited Vulnerabilities catalog, EPSS daily scores (FIRST / Empirical Security). All public, no keys.
 - No backend, no accounts, no alerting.
+- Private continuity through user-downloaded JSON snapshots: restore a list, compare public observations, and prepare a personalised text handover entirely in the browser. No automatic persistence; raw scanner text is excluded from snapshots. Downloaded files contain the CVE list and stay under the user's control.
 - NVD enrichment backlog means many recent CVEs lack CVSS/CPE; this is reported, not hidden.
 - KEV is one exploitation list among several (not exhaustive); EPSS is a probability, not a verdict.
 

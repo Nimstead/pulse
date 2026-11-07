@@ -1,0 +1,38 @@
+[
+  [
+    "CVE-2025-11544",
+    "2025-12-22",
+    "Deferred",
+    9.5,
+    "CRITICAL",
+    "CWE-912",
+    "sharp display solutions",
+    "np-p627ul, np-p627ulg, np-p627ul+, np-p547ul, np-p547ulg, np-p607ul+, np-cg6600ul, np-h6271ul, np-h5471ul, np-p627ulh, np-p547ulh, np-pe455ul, np-pe455ulg, np-pe455wl, np-pe455wlg, np-pe505xlg, np-cg6500xl, np-cg6400ul, np-cg6400wl, np-cb4500xl, np-ca4120x, np-ca4160w, np-ca4160x, np-ca4200u, np-ca4200w, np-ca4202w, np-ca4260x, np-ca4300x, np-ca4355x, np-cd2100u, np-cd2120x, np-cd2300x, np-cr2100x, np-cr2170w, np-cr2170x, np-cr2200u, np-cr2200w, np-cr2280x, np-cr2310x, np-cr2350x, np-mc302xg, np-mc332wg, np-mc342xg, np-mc372x, np-mc372xg, np-mc382w, np-mc382wg, np-mc422xg, np-me342ug, np-me372w, np-me372wg, np-me382u, np-me382ug, np-me402x, np-me402xg, np-p525ul, np-p525ulg, np-p525ul+, np-p525wl, np-p525wlg, np-p525wl+, np-p605ul, np-p605ulg, np-p605ul+, np-cg6500ul, np-cg6500wl, np-cb4500ul, np-cb4500wl, np-p525ulh, np-p525wlh, np-p605ulh, np-p554u, np-p554ug, np-p554u+, np-p554w, np-p554wg, np-p554w+, np-p474u, np-p474ug, np-p474w, np-p474wg, np-p604xg, np-p604x+, np-p603xg, np-p523x+, np-pe523xg, np-pe523x+, np-cf6600u, np-cf6600w, np-cf6700x, np-cf6500x, np-cb4600u, np-p554uh, np-p554wh, np-p474uh, np-p474wh, np-p604xh, np-p603xh, np-pe523xh, np-p502hl-2, np-p502wl-2, np-p502hlg-2, np-p502wlg ,np-me401w, np-me361w, np-me331w, np-me301w, np-me401x, np-me361x, np-me331x, np-me301x, np-me401wg, np-me361wg, np-me331wg, np-me301wg, np-me401xg, np-me361xg, np-me331xg, np-me301xg, np-ca4155w, np-ca4350x, np-ca4255x, np-ca4155x, np-ca4115x, np-mc331wg, np-mc421xg, np-mc401xg, np-mc371xg, np-mc331xg, np-mc301xg, np-ck4155w, np-ck4255x, np-ck4155x, np-ck4055x, np-cm4150x, np-cm4050x, np-ck4155wg, np-ck4255xg, np-ck4155xg, np-cr2165w, np-cr2305x, np-cr2275x, np-cr2165x, np-cr2155x, np-cd2115x, np-cd2105x, np-cm4151x, np-cr2276x, np-cd2116x, np-p502h, np-p502w, np-p452h, np-p452w",
+    0.003,
+    0.22871
+  ],
+  [
+    "CVE-2025-11545",
+    "2025-12-22",
+    "Deferred",
+    9.5,
+    "CRITICAL",
+    "CWE-497",
+    "sharp display solutions",
+    "np-pa1705ul-w, np-pa1705ul-w+, np-pa1705ul-b, np-pa1705ul-b+, np-pa1505ul-w, np-pa1505ul-w+, np-pa1505ul-b, np-pa1505ul-b+, np-pa1505ul-bjl np-pv800ul-w, np-pv800ul-w+, np-pv800ul-b, np-pv800ul-b+, np-pv710ul-w, np-pv710ul-w+, np-pv710ul-b, np-pv710ul-b+, np-pv800ul-w1, np-pv800ul-b1, np-pv710ul-w1, np-pv710ul-b1, np-pv800ul-b1g, np-pv710ul-b1g, np-pv800ul-wh, np-pv710ul-wh, np-p627ul, np-p627ulg, np-p627ul+, np-p547ul, np-p547ulg, np-p607ul+, np-cg6600ul, np-h6271ul, np-h5471ul, np-p627ulh, np-p547ulh np-pv710ul+ np-pa1004ul-w, np-pa1004ul-wg, np-pa1004ul-w+, np-pa1004ul-wh, np-pa1004ul-b, np-pa1004ul-bg, np-pa1004ul-b+, np-pa804ul-w, np-pa804ul-wg, np-pa804ul-w+, np-pa804ul-wh, np-pa804ul-b, np-pa804ul-bg, np-pa804ul-b+, np-pa1004ul-bh, np-pa804ul-bh, np-pe455ul, np-pe455ulg, np-pe455wl, np-pe455wlg, np-pe505xlg, np-cg6500xl, np-cg6400ul, np-cg6400wl, np-cb4500xl, np-ca4120x, np-ca4160w, np-ca4160x, np-ca4200u, np-ca4200w, np-ca4202w, np-ca4260x, np-ca4300x, np-ca4355x, np-cd2100u, np-cd2120x, np-cd2300x, np-cr2100x, np-cr2170w, np-cr2170x, np-cr2200u, np-cr2200w, np-cr2280x, np-cr2310x, np-cr2350x, np-mc302xg, np-mc332wg, np-mc342xg, np-mc372x, np-mc372xg, np-mc382w, np-mc382wg, np-mc422xg, np-me342ug, np-me372w, np-me372wg, np-me382u, np-me382ug, np-me402x, np-me402xg np-cu4300xd, np-cu4200xd, np-cu4200wd, np-um383wl, np-um383wlg, np-cj2200wd, np-ph3501ql, np-ph3501ql+, np-ph2601ql, np-ph2601ql+, np-ph350q40l, np-ph260q30l, np-px1005ql-w, np-px1005ql-b, np-px1005ql-b+, np-p525ul, np-p525ulg, np-p525ul+, np-p525wl, np-p525wlg, np-p525wl+, np-p605ul, np-p605ulg, np-p605ul+",
+    0.003,
+    0.2287
+  ],
+  [
+    "CVE-2025-12592",
+    "2025-11-19",
+    "Deferred",
+    9.3,
+    "CRITICAL",
+    "CWE-1392",
+    "vivotek",
+    "affected device model numbers are fd7131-vvtk,fd7131-vvtk,fd7131-vvtk,fd7141-vvtk,ip7131-vvtk,ip7133-vvtk,ip7133-vvtk,ip7133-vvtk,ip7134-vvtk,ip7135-vvtk,ip7135-vvtk,ip7135-vvtk,ip7135-vvtk,ip7137-vvtk,ip7137-vvtk,ip7137-vvtk,ip7137-vvtk,ip7137-vvtk,ip7137-vvtk,ip7138-vvtk,ip7142-vvtk,ip7142-vvtk,ip7151-vvtk,ip7152-vvtk,ip7153-vvtk,ip7153-vvtk,ip7154-vvtk,ip7330-vvtk,ip7330-vvtk,ip7330-vvtk,ip8131-vvtk,ip8131-vvtk,ip8131-vvtk,ip8131w-vvtk,pt7135-vvtk,pt7137-tcon,pt7137-vvtk,pt7137-vvtk,pt7137-vvtk,pt7137-vvtk,pz7131-vvtk,pz7131-vvtk,pz71x1-vvtk,pz71x1-vvtk,pz71x2-vvtk,sd73x3-vvtk,sd73x3-vvtk,sd73x3-vvtk,tc5330-vvtk,tc5332-tcvv,tc5333-tcvv,tc5633-tcvv,tc5633-vvtk,vs7100-vvtk,vs7100-vvtk,vs7100-vvtk",
+    0.00361,
+    0.3001
+  ]
+]

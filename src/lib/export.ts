@@ -89,7 +89,7 @@ export function downloadCsv(rows: Record<string, unknown>[], name: string) {
   download(new Blob([text], { type: 'text/csv' }), `${name}.csv`)
 }
 
-function download(blob: Blob, filename: string) {
+export function download(blob: Blob, filename: string) {
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename })
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)

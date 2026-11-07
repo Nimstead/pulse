@@ -143,7 +143,7 @@
         {:else if ui.route === 'severity'}<Severity months={data.months} kev={data.kev} epss={data.epss} {partial} {openCve} />
         {:else if ui.route === 'vendors'}<Vendors months={data.months} vendors={data.vendors} cwe={data.cwe} kev={data.kev} {openCve} />
         {:else if ui.route === 'week'}<Week kev={data.kev} recent={data.recent} {today} {openCve} />
-        {:else}<Watchlist months={data.months} {kevById} epss={data.epss} cwe={data.cwe.rows} cweNames={data.cwe.names ?? {}} shards={data.meta.shards} indexParts={data.meta.indexParts} {today} {openCve} />{/if}
+        {:else}<Watchlist months={data.months} {kevById} epss={data.epss} cwe={data.cwe.rows} cweNames={data.cwe.names ?? {}} shards={data.meta.shards} indexParts={data.meta.indexParts} {today} {openCve} meta={data.meta} />{/if}
       </div>
     {/key}
   {:else}
