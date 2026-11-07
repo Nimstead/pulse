@@ -93,3 +93,7 @@ Browser viewport testing does not replace physical-device or screen-reader testi
 Added a global, keyboard-accessible “Use CISA KEV due dates” preference, off by default. Enabling it includes federal deadline ordering, tiles and dates in the weekly handover, private-list results, CVE timeline and relevant exports. Disabling it retains exploitation signals and new KEV listings while excluding deadline-only queue entries and export fields. The choice follows navigation and reloads through the shared URL (`deadlines=on`); a fresh unconfigured URL defaults off. Guidance distinguishes the federal benchmark from an organisation's own obligations and remediation status.
 
 Verified route parsing tests, full tests, Svelte checks and production build. Browser-tested Space-key toggling, on-state reload, queue changes and 320px layout (no horizontal overflow). Physical-device and screen-reader testing remain outside this check.
+
+### Deadline control visual refinement
+
+Replaced the page-wide settings block with a compact shared control beside the weekly window controls and above private-list result metrics. The explanation is available through an About disclosure. Other reports no longer carry the control above their headlines. Preserved the existing opt-in behaviour and URL state. Checked production mobile (390px and 320px), desktop alignment, keyboard activation and disclosure expansion; no 320px horizontal overflow. Svelte checks and production build passed.

@@ -7,6 +7,7 @@
 
 <script lang="ts">
   import { ui } from '../lib/state.svelte'
+  import DeadlineControl from '../components/DeadlineControl.svelte'
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
   import { downloadCsv } from '../lib/export'
@@ -81,10 +82,12 @@
 </header>
 
 <p class="sr-only" role="status">{copied}</p>
+<div class="report-controls">
 <div class="toggle" role="group" aria-label="Window">
   {#each [7, 14, 30] as d (d)}<button aria-pressed={windowDays === d} onclick={() => (ui.windowDays = d)}>Last {d} days</button>{/each}
 </div>
-
+<DeadlineControl />
+</div>
 
 <div class="tiles" class:no-deadlines={!ui.kevDeadlines}>
   <div><div class="kicker">New KEV listings</div><div class="big red">{num(newKev.length)}</div><div class="cmp"><b>{num(prevKevN)}</b> the {windowDays} days before{newKev.some((k) => k.ransom) ? ` · ${newKev.filter((k) => k.ransom).length} with ransomware use` : ''}</div></div>
@@ -146,7 +149,8 @@
 </Figure>
 
 <style>
-  .toggle { display: inline-flex; border: 2px solid var(--ink); overflow: hidden; margin-bottom: 1.5rem; }
+  .report-controls { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 0.75rem 1.5rem; margin-bottom: 1.5rem; }
+  .toggle { display: inline-flex; border: 2px solid var(--ink); overflow: hidden; margin-bottom: 0; }
   .toggle button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.55rem 0.95rem; min-height: 2.75rem; font: 700 0.8125rem var(--sans); color: var(--ink-2); cursor: pointer; }
   .toggle button:first-child { border-left: 0; }
   .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }

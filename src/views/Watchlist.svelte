@@ -45,6 +45,7 @@
 </script>
 
 <script lang="ts">
+  import DeadlineControl from '../components/DeadlineControl.svelte'
   import { ui } from '../lib/state.svelte'
   import { tick, onDestroy, onMount } from 'svelte'
   import Figure from '../components/Figure.svelte'
@@ -257,6 +258,7 @@
     {#if watch.missing.length || watch.rejected.length}<span class="aside">{[watch.missing.length && `${num(watch.missing.length)} not found`, watch.rejected.length && `${num(watch.rejected.length)} rejected`].filter(Boolean).join(', ')}; <a href="#watch-unmatched">see the end of the page</a>.</span>{/if}
   </p>
 
+  <div class="result-controls"><DeadlineControl /></div>
   <div class="tiles">
     <div><div class="kicker">Exploited (in KEV)</div><div class="big red">{num(kevN)}</div><div class="cmp">{pct(kevN / n)} of {yourList}</div></div>
     <div><div class="kicker">Known ransomware use</div><div class="big" class:red={ransomN > 0}>{num(ransomN)}</div><div class="cmp">KEV entries CISA links to ransomware</div></div>
@@ -394,6 +396,7 @@
 {/if}
 
 <style>
+  .result-controls { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
   .intake { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); margin-bottom: 2rem; }
   .field { display: grid; gap: 0.5rem; align-content: start; }
   textarea {
