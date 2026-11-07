@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/wrangler@4/config-schema.json",
   "name": "nimstead-pulse",
   "compatibility_date": "2026-10-20",
-  // Static assets only: no Worker script. The app routes by hash, so no SPA fallback is needed.
+  // Static assets only: no Worker script. Each route is prerendered; unknown paths remain real 404s.
   "assets": { "directory": "./dist" },
   "routes": [{ "pattern": "pulse.nimstead.systems", "custom_domain": true }],
   "observability": { "enabled": true }

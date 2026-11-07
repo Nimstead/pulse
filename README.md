@@ -2,7 +2,7 @@
 
 A daily surveillance report on CVE releases and exploitation in the wild. It shows monthly CVE volume, CISA KEV listings and how fast they follow disclosure, severity and EPSS, vendors and weaknesses, a "this week" brief, and a lookup for any CVE.
 
-Static site (Vite + Svelte 5). A standard-library Python ETL turns public feeds into small JSON files:
+Static site (Vite + Svelte 5), with each report rendered to HTML at build time. A standard-library Python ETL turns public feeds into small JSON files:
 
 | Source | Used for |
 | --- | --- |
@@ -56,3 +56,9 @@ The code is under the [MIT licence](LICENSE).
 The licence doesn't cover the Nimstead brand. The names "Nimstead" and "Nimstead Pulse", the Nimstead mark (the favicon) and the Plain Sight visual identity stay with Nimstead. If you publish a fork, give it another name and remove the marks.
 
 The bundled fonts (Archivo, Geist Mono) are under the SIL Open Font Licence. The data comes from NVD, CISA and FIRST under their own terms.
+
+## Search and shared links
+
+`npm run build` renders the same Svelte reports into `/`, `/exploitation/`, `/severity/`, `/vendors/`, `/week/` and `/watchlist/`, then checks the HTML and sitemap. The daily workflow therefore refreshes both the readable HTML and interactive data together. Public reports have distinct titles, descriptions and self-canonicals. The sitemap excludes the personal watchlist tool.
+
+Old `#/week` style links still work. Filters remain in fragments and do not reach the server. Watchlist input remains memory-only. The static report stays visible if the interactive data fails to load.

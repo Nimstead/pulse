@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {
     "data": "python etl/build.py",
-    "test": "python -I etl/test_build.py && node src/lib/watchlist.test.ts && node src/lib/export.test.ts && node src/lib/period.test.ts",
+    "test": "python -I etl/test_build.py && node src/lib/watchlist.test.ts && node src/lib/export.test.ts && node src/lib/period.test.ts && node src/lib/routes.test.ts",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender.mjs && node --test scripts/seo.test.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {

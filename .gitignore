@@ -10,3 +10,5 @@ public/data/
 .playwright-mcp/
 .wrangler/
 __pycache__/
+
+.prerender/

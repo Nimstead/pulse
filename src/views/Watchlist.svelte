@@ -26,7 +26,7 @@
     try {
       await Promise.all(Array.from({ length: 4 }, async () => {
         for (let name = queue.shift(); name; name = queue.shift()) {
-          const r = await fetch(`data/cve/${name}.json`, { signal: c.signal })
+          const r = await fetch(`/data/cve/${name}.json`, { signal: c.signal })
           if (!r.ok) throw new Error(`Could not load ${name}.json (${r.status})`)
           for (const row of (await r.json()) as CveRow[]) if (want.has(row[0])) out[row[0]] = row[9]
           if (!c.signal.aborted) watch.dl.done++
@@ -45,7 +45,7 @@
 </script>
 
 <script lang="ts">
-  import { tick } from 'svelte'
+  import { tick, onMount } from 'svelte'
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
   import Rows from '../components/Rows.svelte'
@@ -71,13 +71,13 @@
       shown = 50
     } catch (e) { err = String((e as Error).message ?? e) }
   }
-  if (!exampleShown && !watch.text && !watch.items.length) example()
+  onMount(() => { if (!exampleShown && !watch.text && !watch.items.length) example() })
   async function run() {
     busy = true; err = ''
     try {
       // every part, whatever is on the list; plain fetch, not the load() cache: the 45 MB index is dropped once the list is joined
       const parts = await Promise.all(Array.from({ length: indexParts }, async (_, i) => {
-        const r = await fetch(`data/index-${i}.json`)
+        const r = await fetch(`/data/index-${i}.json`)
         if (!r.ok) throw new Error(`Could not load the CVE index (${r.status})`)
         return (await r.json()) as IdxRow[]
       }))

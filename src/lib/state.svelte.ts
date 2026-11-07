@@ -11,12 +11,3 @@ export const provenance = (period = true) => {
   const p = period && !['week', 'watchlist'].includes(ui.route) && feed.months.length ? ` · ${monthShort(feed.months[ui.from])}–${monthShort(feed.months[ui.to])}` : ''
   return `Nimstead Pulse · Sources: NVD, CISA KEV, EPSS · data ${feed.generated ? dateShort(feed.generated) : ''}${p}`
 }
-
-export const ROUTES = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'exploitation', label: 'Exploitation' },
-  { id: 'severity', label: 'Severity & EPSS' },
-  { id: 'vendors', label: 'Vendors & weaknesses' },
-  { id: 'week', label: 'This week' },
-  { id: 'watchlist', label: 'Your CVEs' },
-] as const

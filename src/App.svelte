@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { load, isoWeek, dateLong, num, type Month, type Kev, type Meta, type Epss, type Ranked } from './lib/data'
+  import { onMount } from 'svelte'
+  import { routePath, readLocation, ROUTES } from './lib/routes'
+  import { isoWeek, dateLong, num, type Month, type Kev, type Meta, type Epss, type Ranked } from './lib/data'
   import { readPeriod } from './lib/period'
-  import { ui, feed, ROUTES } from './lib/state.svelte'
+  import { ui } from './lib/state.svelte'
   import Search from './components/Search.svelte'
   import Sheet from './components/Sheet.svelte'
   import Overview from './views/Overview.svelte'
@@ -14,9 +16,8 @@
 
   type Data = { months: Month[]; kev: Kev[]; meta: Meta; epss: Epss; vendors: { years: string[]; rows: Ranked[] }; cwe: { years: string[]; rows: Ranked[]; names?: Record<string, string> }; recent: Recent }
 
-  let data = $state<Data | null>(null)
-  let error = $state('')
-  let theme = $state<string>(document.documentElement.dataset.theme ?? '')
+  let { initialData: data }: { initialData: Data } = $props()
+  let theme = $state<string>(typeof document === 'undefined' ? '' : document.documentElement.dataset.theme ?? '')
   try { theme = localStorage.getItem('theme') ?? '' } catch {}
   $effect(() => {
     if (theme) document.documentElement.dataset.theme = theme
@@ -24,18 +25,13 @@
     try { theme ? localStorage.setItem('theme', theme) : localStorage.removeItem('theme') } catch {}
   })
   // another tab switched theme
-  addEventListener('storage', (e) => { if (e.key === 'theme' || e.key === null) theme = e.newValue ?? '' })
-  const dark = $derived(theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches))
-
-  Promise.all([
-    load<Month[]>('monthly.json'), load<Kev[]>('kev.json'), load<Meta>('meta.json'), load<Epss>('epss.json'),
-    load<Data['vendors']>('vendors.json'), load<Data['cwe']>('cwe.json'), load<Recent>('recent.json'),
-  ]).then(([m, kev, meta, epss, vendors, cwe, recent]) => {
-    const months = m.filter((x) => x.ym >= '1999-01')
-    data = { months, kev, meta, epss, vendors, cwe, recent }
-    feed.generated = meta.generated.slice(0, 10); feed.months = months.map((x) => x.ym)
+  onMount(() => {
+    const storage = (e: StorageEvent) => { if (e.key === 'theme' || e.key === null) theme = e.newValue ?? '' }
+    addEventListener('storage', storage)
     readHash()
-  }).catch((e) => (error = String(e.message ?? e)))
+    return () => removeEventListener('storage', storage)
+  })
+  const dark = $derived(theme === 'dark' || (!theme && typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches))
 
   const kevById = $derived(new Map((data?.kev ?? []).map((k) => [k.id, k])))
   const today = $derived(data ? data.meta.generated.slice(0, 10) : '')
@@ -43,15 +39,18 @@
 
   function readHash() {
     if (!data) return
-    const [path, qs] = location.hash.replace(/^#\/?/, '').split('?')
-    const p = new URLSearchParams(qs)
-    ui.route = ROUTES.some((r) => r.id === path) ? path : 'overview'
+    const { route, params: p } = readLocation(location.pathname, location.hash)
+    ui.route = route
     const [from, to] = readPeriod(data.months.map((m) => m.ym), p.get('from'), p.get('to'))
     ui.from = from; ui.to = to
     ui.vendor = p.get('vendor') ?? ''
     ui.cve = p.get('cve') ?? ''
   }
-  addEventListener('hashchange', readHash)
+  onMount(() => {
+    addEventListener('hashchange', readHash)
+    addEventListener('popstate', readHash)
+    return () => { removeEventListener('hashchange', readHash); removeEventListener('popstate', readHash) }
+  })
 
   // keep the URL in step without stacking history entries for every brush move
   $effect(() => {
@@ -59,12 +58,21 @@
     const p = new URLSearchParams({ from: data.months[ui.from].ym, to: data.months[ui.to].ym })
     if (ui.vendor && ui.route === 'vendors') p.set('vendor', ui.vendor)
     if (ui.cve && watchRow(ui.cve) === undefined) p.set('cve', ui.cve) // a private-list ID never reaches the URL or history
-    const next = `#/${ui.route}?${p}`
-    if (location.hash !== next) history.replaceState(null, '', next)
+    const next = `${routePath(ui.route)}#?${p}`
+    if (location.pathname + location.hash !== next) history.replaceState(null, '', next)
   })
 
   let main: HTMLElement
-  $effect(() => { document.title = `${ROUTES.find((r) => r.id === ui.route)?.label ?? 'Overview'} · Nimstead Pulse` })
+  $effect(() => {
+    const r = ROUTES.find((r) => r.id === ui.route)!
+    document.title = `${r.title} · Nimstead Pulse`
+    document.querySelector('meta[name=description]')?.setAttribute('content', r.description)
+    const url = `https://pulse.nimstead.systems${routePath(ui.route)}`
+    document.querySelector('link[rel=canonical]')?.setAttribute('href', url)
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', url)
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title)
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', r.description)
+  })
 
   function go(route: string) {
     // a section change is a real history step (Back returns to it); the effect above then rewrites the new top entry
@@ -79,7 +87,7 @@
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); ui.search = true }
     else if (e.key === '/' && !(e.target as Element).closest?.('input, textarea, select, [contenteditable]')) { e.preventDefault(); ui.search = true }
   }
-  const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 </script>
 
 <svelte:window onkeydown={onkey} />
@@ -98,7 +106,7 @@
 
 <header class="wrap masthead">
   <!-- product lockup: company in ExtraBold, product word in Regular; the seal belongs to the company mark only -->
-  <h1><a href="#/overview" onclick={() => go('overview')}><span class="co">Nimstead</span> <span class="prod">Pulse</span></a></h1>
+  <h1><a href="/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('overview') }}><span class="co">Nimstead</span> <span class="prod">Pulse</span></a></h1>
   <div class="tools">
     <button class="search" onclick={() => (ui.search = true)} aria-label="Search CVEs and vendors" aria-keyshortcuts="Control+K Meta+K">
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.75" /><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" /></svg>
@@ -114,20 +122,13 @@
 <nav class="nav" aria-label="Sections">
   <div class="wrap">
     {#each ROUTES as r (r.id)}
-      <a href="#/{r.id}" aria-current={ui.route === r.id ? 'page' : undefined} onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go(r.id) }}>{r.label}</a>
+      <a href={routePath(r.id)} aria-current={ui.route === r.id ? 'page' : undefined} onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go(r.id) }}>{r.label}</a>
     {/each}
   </div>
 </nav>
 
 <main class="wrap" id="main" tabindex="-1" bind:this={main}>
-  {#if error}
-    <div class="error" role="alert">
-      <h2>The data files could not be loaded.</h2>
-      <p>The report could not be downloaded. Check your connection and try again. Your private CVE list is never sent to us.</p>
-      <button class="retry" onclick={() => location.reload()}>Reload the report</button>
-      <p>If it still won’t load, <a href="https://github.com/Nimstead/pulse/issues">report the problem</a>.</p>
-    </div>
-  {:else if data}
+  {#if data}
     {#key ui.route}
       <div class="view">
         {#if ui.route === 'overview'}<Overview months={data.months} kev={data.kev} vendors={data.vendors} {partial} {today} {openCve} {go} />
@@ -214,10 +215,6 @@
   main { min-height: 60vh; }
   .view { animation: view-in 420ms var(--ease-out) both; }
   @keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
-  .error { padding: 4rem 0; max-width: 60ch; }
-  .error h2 { font: 800 2.25rem/1 var(--display); letter-spacing: -0.045em; margin-bottom: 1rem; }
-  .retry { background: var(--ink); color: var(--paper); border: 2px solid var(--ink); padding: 0.8rem 1.2rem; cursor: pointer; font-weight: 700; }
-  .retry:hover { background: var(--paper); color: var(--ink); }
   .loading { display: flex; gap: 6px; align-items: flex-end; height: 140px; padding: 3rem 0; }
   .loading span { width: 18px; background: var(--ink); animation: pulse 900ms ease-in-out infinite alternate; }
   .loading span:nth-child(2) { animation-delay: 150ms; } .loading span:nth-child(3) { animation-delay: 300ms; background: var(--kev); }

@@ -24,7 +24,7 @@ export type CveRow = [string, string, string, number | null, string, string, str
 const cache = new Map<string, Promise<unknown>>()
 export function load<T>(name: string): Promise<T> {
   if (!cache.has(name))
-    cache.set(name, fetch(`data/${name}`).then((r) => {
+    cache.set(name, fetch(`/data/${name}`).then((r) => {
       if (!r.ok) throw new Error(`Could not load ${name} (${r.status})`)
       return r.json()
     }).catch((e) => { cache.delete(name); throw e })) // a failed fetch is retried next time, not cached
