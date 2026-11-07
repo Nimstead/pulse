@@ -1,5 +1,6 @@
-import { mount } from 'svelte'
+import { mount, tick } from 'svelte'
 import App from './App.svelte'
+import { watch } from './views/Watchlist.svelte'
 import { load } from './lib/data'
 import { ui, feed } from './lib/state.svelte'
 import { readPeriod } from './lib/period'
@@ -14,15 +15,26 @@ const target = document.getElementById('app')!
 Promise.all([
   load<Data['months']>('monthly.json'), load<Data['kev']>('kev.json'), load<Data['meta']>('meta.json'),
   load<Data['epss']>('epss.json'), load<Data['vendors']>('vendors.json'), load<Data['cwe']>('cwe.json'), load<Data['recent']>('recent.json'),
-]).then(([m, kev, meta, epss, vendors, cwe, recent]) => {
+]).then(async ([m, kev, meta, epss, vendors, cwe, recent]) => {
   const months = m.filter((x) => x.ym >= '1999-01')
   const { route, params, windowDays, kevDeadlines, vendorSort, cweSort } = readLocation(location.pathname, location.hash)
   const [from, to] = readPeriod(months.map((m) => m.ym), params.get('from'), params.get('to'))
   Object.assign(ui, { route, from, to, windowDays, kevDeadlines, vendorSort, cweSort, vendor: params.get('vendor') ?? '', cve: params.get('cve') ?? '' })
   feed.generated = meta.generated.slice(0, 10); feed.months = months.map((m) => m.ym)
+  // The published textarea is usable while data loads; keep its private input in memory.
+  const input = target.querySelector<HTMLTextAreaElement>('#watch-text')
+  const editing = input === document.activeElement
+  const selection = input ? [input.selectionStart, input.selectionEnd, input.selectionDirection] as const : null
+  if (input) watch.text = input.value
   // Keep the readable daily report until the interactive data is ready.
   target.replaceChildren()
   mount(App, { target, props: { initialData: { months, kev, meta, epss, vendors, cwe, recent } } })
+  if (editing && selection) {
+    await tick()
+    const field = target.querySelector<HTMLTextAreaElement>('#watch-text')
+    field?.focus({ preventScroll: true })
+    field?.setSelectionRange(...selection)
+  }
 }).catch(() => {
   const message = document.createElement('p')
   message.setAttribute('role', 'alert')

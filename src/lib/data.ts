@@ -90,11 +90,14 @@ const NAMES: Record<string, string> = {
 /** Display name for a normalised vendor/product key: known spellings first, model numbers upper-cased, else title case. */
 export const titleCase = (s: string) =>
   NAMES[s] ?? s.split(' ').map((w) => NAMES[w] ?? (/\d.*\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ')
+/** Cisco IOS and Apple iOS share a normalised key but not a display name. */
+export const productName = (vendor: string, product: string) =>
+  vendor.toLowerCase() === 'cisco' && /^ios(?: (?:xe|xr))?$/.test(product.toLowerCase()) ? product.toUpperCase() : titleCase(product)
 /** KEV vendor and product as written by CISA, without repeating the vendor ('Sudo', not 'Sudo Sudo'). */
 export const kvp = (vendor: string, product: string) => (product.toLowerCase().startsWith(vendor.toLowerCase()) ? product : `${vendor} ${product}`.trim())
 /** "Vendor product", without repeating the vendor when the product is named after it. */
 export const vp = (vendor: string, product: string) => {
-  const v = titleCase(vendor || '—'), p = titleCase(product || '')
+  const v = titleCase(vendor || '—'), p = productName(vendor, product || '')
   const bare = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
   if (!p || bare(p) === bare(v)) return p || v // 'Joomla!' rather than 'Joomla Joomla!'
   return p.toLowerCase().startsWith(v.toLowerCase() + ' ') ? p : `${v} ${p}`

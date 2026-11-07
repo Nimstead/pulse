@@ -1,9 +1,9 @@
 <script lang="ts">
   import { ui } from '../lib/state.svelte'
-  import { shard, num, pct, epssPct, dateLong, daysBetween, titleCase, SEV_COLOR, type Kev, type CveRow } from '../lib/data'
+  import { shard, num, pct, epssPct, dateLong, daysBetween, titleCase, productName, SEV_COLOR, type Kev, type CveRow } from '../lib/data'
 
-  let { id = $bindable(), kevById, today, local, cweNames = {}, epssDate, nvdDate }: {
-    id: string; kevById: Map<string, Kev>; today: string; local?: (id: string) => CveRow | null | undefined; cweNames?: Record<string, string>; epssDate?: string; nvdDate?: string
+  let { id = $bindable(), kevById, today, local, onDescriptions, cweNames = {}, epssDate, nvdDate }: {
+    id: string; kevById: Map<string, Kev>; today: string; local?: (id: string) => CveRow | null | undefined; onDescriptions?: () => void; cweNames?: Record<string, string>; epssDate?: string; nvdDate?: string
   } = $props()
 
   let dlg: HTMLDialogElement
@@ -31,21 +31,21 @@
     return () => { active = false }
   })
 
-  function close() {
+  function close(after?: () => void) {
     if (closing || !dlg.open) return
     closing = true
     // leave the way it came in: slide back out to the right, then close
-    setTimeout(() => { dlg.close(); closing = false; id = '' }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 220)
+    setTimeout(() => { dlg.close(); closing = false; id = ''; after?.() }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 220)
   }
   const steps = $derived.by(() => {
     const s: { label: string; date: string; note?: string; red?: boolean }[] = []
     const pub = row?.[1] ?? kev?.pub
     if (pub) s.push({ label: 'Published', date: pub, note: 'NVD publication date' })
     if (kev) {
-      s.push({ label: 'Added to CISA KEV', date: kev.added, red: true, note: kev.lag == null ? '' : kev.lag <= 0 ? 'Listed on or before publication day' : `${num(kev.lag)} days after publication` })
+      s.push({ label: 'Added to CISA KEV', date: kev.added, red: true, note: kev.lag == null ? '' : kev.lag <= 0 ? 'Listed on or before publication day' : `${num(kev.lag)} day${kev.lag === 1 ? '' : 's'} after publication` })
       if (ui.kevDeadlines && kev.due) {
         const d = daysBetween(today, kev.due)
-        s.push({ label: 'KEV due date (US federal deadline)', date: kev.due, note: d >= 0 ? `${d} days from the data date` : `${-d} days ago` })
+        s.push({ label: 'KEV due date (US federal deadline)', date: kev.due, note: d === 0 ? 'On the data date' : d > 0 ? `${d} day${d === 1 ? '' : 's'} from the data date` : `${-d} day${d === -1 ? '' : 's'} ago` })
       }
     }
     return s.sort((a, b) => a.date.localeCompare(b.date))
@@ -59,7 +59,7 @@
       <div>
         <h2 id="sheet-title">{id}</h2>
       </div>
-      <button class="x" onclick={close} aria-label="Close"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" /></svg></button>
+      <button class="x" onclick={() => close()} aria-label="Close"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" /></svg></button>
     </header>
 
     {#if row === undefined}
@@ -72,7 +72,9 @@
     {:else if row === null}
       <p class="record-status">No NVD record for {id} in this snapshot. Check the ID; very new CVEs can take a day to appear.{#if kev} CISA KEV information is available below.{/if}</p>
     {:else if privateRecord && !row[9]}
-      <p class="record-status">Description not loaded. Use “Download descriptions” in Your CVEs to add it privately.</p>
+      <div class="record-status"><p>Description not loaded. Download the shared description files in Your CVEs to add it privately.</p>
+        {#if onDescriptions}<button class="retry" onclick={() => close(onDescriptions)}>Go to description download</button>{/if}
+      </div>
     {/if}
     {#if row || kev}
       <div class="chips">
@@ -90,7 +92,7 @@
 
       <dl class="facts">
         <div><dt>Vendor</dt><dd>{kev?.vendor || titleCase(row?.[6] || '—')}</dd></div>
-        <div><dt>Product</dt><dd>{kev?.product || titleCase(row?.[7] || '—')}</dd></div>
+        <div><dt>Product</dt><dd>{kev?.product || productName(row?.[6] || '', row?.[7] || '—')}</dd></div>
         <div><dt>Weakness</dt><dd>{#if row?.[5] || kev?.cwe}{@const w = (row?.[5] || kev?.cwe)!}{cweNames[w] ?? w}{#if cweNames[w]}&nbsp;<span class="muted cwe">{w}</span>{/if}{:else}—{/if}</dd></div>
         <div><dt>EPSS</dt><dd>{#if epssScore != null}{epssPct(epssScore)} <span class="muted">estimated probability of exploitation activity in 30 days</span>{:else}Unavailable{/if}</dd></div>
       </dl>
@@ -147,7 +149,7 @@
   .provenance { margin: -0.5rem 0 1rem; color: var(--ink-3); font-size: 0.8rem; }
   .record-status { margin: 1rem 0; padding: 0.8rem; background: var(--shade); color: var(--ink-2); font-size: 0.875rem; }
   .record-status p { margin: 0; }
-  .retry { min-height: 2.75rem; margin-top: 0.5rem; padding: 0.4rem 0.75rem; border: 1px solid var(--ink); background: var(--paper); cursor: pointer; }
+  .retry { min-height: 2.75rem; margin-top: 0.5rem; padding: 0.4rem 0.75rem; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; }
   .retry:hover { background: var(--ink); color: var(--paper); }
   .triage { background: var(--shade); border-left: 3px solid var(--ink-2); padding: 0.75rem 0.9rem; margin: 0 0 1.25rem; font-size: 0.875rem; color: var(--ink-2); }
   .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.25rem; margin: 0 0 0.75rem; }

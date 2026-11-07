@@ -146,10 +146,9 @@
 </script>
 
 <section class="briefing" aria-label="Start with Pulse">
-  <div class="briefing-intro"><p>From public signals to your next decision.</p><span>Triage your CVEs, prepare a team handover, or explore the evidence behind vulnerability trends.</span></div>
   <div class="briefing-actions">
-    <a href="/week/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('week') }}>Prepare a handover<span>New KEV entries and federal deadlines</span></a>
-    <a href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Triage your CVEs<span>KEV, EPSS and severity. Private by design.</span></a>
+    <a href="/week/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('week') }}>Prepare a handover</a>
+    <a href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Triage your CVEs</a>
   </div>
 </section>
 
@@ -312,14 +311,11 @@
 </section>
 
 <style>
-  .briefing { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1.5rem 2rem; padding: 1.75rem 0; border-bottom: 1px solid var(--rule); }
-  .briefing-intro p { margin: 0 0 0.35rem; font: 700 1.125rem/1.2 var(--sans); letter-spacing: -0.02em; }
-  .briefing-intro > span { display: block; max-width: 50ch; font-size: 0.875rem; color: var(--ink-3); }
-  .briefing-actions { display: flex; gap: 1.5rem; }
-  .briefing-actions a { text-decoration: none; text-align: left; padding: 0.6rem 0 0.6rem 1rem; border: 0; border-left: 2px solid var(--ink); color: var(--ink); background: transparent; font: 700 0.9375rem/1.3 var(--sans); cursor: pointer; }
-  .briefing-actions a:hover { background: var(--shade); }
-  .briefing-actions span { display: block; margin-top: 0.35rem; max-width: 23ch; color: var(--ink-3); font-size: 0.8125rem; font-weight: 400; }
-  @media (max-width: 900px) { .briefing { grid-template-columns: minmax(0, 1fr); gap: 1rem; } .briefing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; } }
+  .briefing { padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+  .briefing-actions { display: flex; flex-wrap: wrap; gap: 0.25rem 2rem; }
+  .briefing-actions a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 0; text-underline-offset: 0.2em; font: 600 0.9375rem/1.3 var(--sans); }
+  .briefing-actions a:hover { text-decoration-thickness: 2px; }
+  @media (max-width: 560px) { .briefing-actions { gap: 0.25rem 1.25rem; } }
   .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.75rem, 3vw, 2.75rem) 0 1.75rem; }
   .headline { font: 800 clamp(2.5rem, 5.2vw, 4.75rem)/0.94 var(--display); letter-spacing: -0.05em; max-width: 19ch; }
   .headline :global(.fn) { font-size: 0.32em; vertical-align: 1.6em; letter-spacing: 0; }

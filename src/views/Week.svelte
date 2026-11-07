@@ -10,7 +10,7 @@
   import DeadlineControl from '../components/DeadlineControl.svelte'
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
-  import { downloadCsv } from '../lib/export'
+  import { download, downloadCsv } from '../lib/export'
   import { inLastDays, dueWithinDays } from '../lib/week'
   import { num, pct, epssPct, dateLong, dateShort, titleCase, kvp, daysBetween, addDays, vp, SEV_COLOR, type Kev } from '../lib/data'
 
@@ -49,12 +49,23 @@
   let expandedProduct = $state('')
   let productsShown = $state(15)
   let copied = $state('')
-  async function brief() {
+  let copyError = $state('')
+  let downloadError = $state('')
+  function handoverText() {
     const lines = [`Nimstead Pulse · last ${windowDays} days to ${dateShort(today)}`, `NVD CVE publication data through ${dateShort(recent.latest)}`, '',
       `${newKev.length} new CISA KEV listings · ${ui.kevDeadlines ? `${todayN} KEV due today · ${passedWindow.length} KEV due dates passed in this window · ` : ''}${severeN} new Critical or High CVEs, ${likely.length} with elevated EPSS (10% or more)`, '',
       'Start here:', ...start.map((x) => `- ${x.id}  ${x.what}  (${x.why}; ${x.facts})`), '', 'Public signals do not show whether your assets are exposed or affected; verify product and version applicability.', ui.kevDeadlines ? 'CISA due dates are federal benchmarks, not your remediation status.' : 'CISA due dates excluded from this handover.', 'Sources: NVD, CISA KEV, EPSS']
-    try { await navigator.clipboard.writeText(lines.join('\n')); copied = 'Copied' } catch { copied = 'Copy failed' }
-    setTimeout(() => (copied = ''), 1800)
+    return lines.join('\n')
+  }
+  async function brief() {
+    copyError = ''; copied = ''
+    try { await navigator.clipboard.writeText(handoverText()); copied = 'Copied'; setTimeout(() => (copied = ''), 1800) }
+    catch { copyError = 'Could not copy the handover. Retry copying, or download it as a text file.' }
+  }
+  function saveHandover() {
+    downloadError = ''
+    try { download(new Blob([handoverText()], { type: 'text/plain;charset=utf-8' }), `pulse-week-${today}.txt`) }
+    catch { downloadError = 'Could not download the handover. Try Download handover again, or copy the text.' }
   }
   const days = $derived(recent.days.filter(([d]) => inLastDays(d, today, windowDays)))
   const pubN = $derived(days.reduce((a, d) => a + d[1], 0))
@@ -101,9 +112,11 @@
 {#if start.length}
   <section class="start" aria-labelledby="start-h">
     <div class="start-head">
-      <div><h3 id="start-h">Start here</h3><p class="rank">{#if ui.kevDeadlines}KEV due dates that passed in this window or fall today, then new KEV listings, then other dates due in the next {windowDays} days, then{:else}New KEV listings, then{/if} the 2 fresh CVEs with the highest available EPSS. Check asset and version applicability before prioritising action.</p></div>
-      <span class="acts"><button class="copytext" onclick={brief}>{copied || 'Copy as text'}</button><button class="copytext" onclick={() => downloadCsv(start.map((x, i) => ({ snapshot_date: today, rank: i + 1, cve: x.id, product: x.what, status: x.why, ...(ui.kevDeadlines ? { deadline: x.due } : {}), facts: x.facts })), 'start-here')}>CSV</button></span>
+      <div><h3 id="start-h">Start here</h3><p class="rank">{#if ui.kevDeadlines}KEV due dates that passed in this window or fall today, then new KEV listings, then other dates due in the next {windowDays} days, then{:else}New KEV listings, then{/if} up to 2 fresh CVEs with the highest available EPSS. Check asset and version applicability before prioritising action.</p></div>
+      <span class="acts"><button class="copytext" onclick={brief}>{copied || (copyError ? 'Retry copy' : 'Copy as text')}</button><button class="copytext" onclick={saveHandover}>Download handover</button><button class="copytext" onclick={() => downloadCsv(start.map((x, i) => ({ snapshot_date: today, rank: i + 1, cve: x.id, product: x.what, status: x.why, ...(ui.kevDeadlines ? { deadline: x.due } : {}), facts: x.facts })), 'start-here')}>CSV</button></span>
     </div>
+    {#if copyError}<p class="export-error" role="alert">{copyError}</p>{/if}
+    {#if downloadError}<p class="export-error" role="alert">{downloadError}</p>{/if}
     <ol>
       {#each all ? start : start.slice(0, SHOW) as x, i (x.id)}
         <li class:no-deadlines={!ui.kevDeadlines}>
@@ -121,7 +134,7 @@
 
 
 <div id="fresh" class="anchor"></div>
-<Figure n={15} name="recent-critical" title="Fresh Critical and High CVEs, by product" sub="Published in the last {windowDays} days: one row per product, ranked by its highest available EPSS. {likely.length ? `${num(likely.length)} have EPSS of 10% or more.` : 'None with an available EPSS has reached 10%.'} EPSS is a probability signal, not a finding of exposure or exploitation."
+<Figure n={15} name="recent-critical" title="Fresh Critical and High CVEs, by product" sub="Published in the last {windowDays} days: one row per product, ranked by its highest available EPSS. {likely.length ? `${num(likely.length)} ${likely.length === 1 ? 'has' : 'have'} EPSS of 10% or more.` : 'None with an available EPSS has reached 10%.'} EPSS is a probability signal, not a finding of exposure or exploitation."
   csv={() => hot.map((r) => ({ cve: r[0], published: r[1], severity: r[4], score: r[3], vendor: r[6], product: r[7], epss: r[8] }))}>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
   <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
@@ -155,8 +168,12 @@
   {#if hotGroups.length > productsShown}<button class="linklike more" onclick={() => productsShown += 15}>Show more products ({num(hotGroups.length - productsShown)} remaining)</button>{/if}
 </Figure>
 
-<Figure n={16} name="recent-published" title="CVEs published per day" sub="Darker segment: CVEs that already have a severity score"
+<Figure n={16} name="recent-published" title="CVEs published per day" sub="Published CVEs, split by whether a severity score is available"
   csv={() => days.map(([d, n, s]) => ({ date: d, published: n, scored: s }))}>
+  {#snippet legend()}
+    <span><span class="swatch" style:background="var(--vol)"></span> Scored</span>
+    <span><span class="swatch" style:background="var(--vol-soft)"></span> Not scored yet</span>
+  {/snippet}
   <Bars label="CVEs published per day" labels={days.map((d) => d[0])} height={160}
     series={[{ key: 's', label: 'Scored', color: 'var(--vol)', values: days.map((d) => d[2]) }, { key: 'u', label: 'Not scored yet', color: 'var(--vol-soft)', values: days.map((d) => d[1] - d[2]) }]}
     tick={(l, i) => (days.length <= 14 || i % 5 === 0 ? weekday(l) : null)} tipTitle={(l) => dateLong(l)} />
@@ -185,7 +202,8 @@
   .start .rank { margin: 0.2rem 0 0; font-size: 0.875rem; color: var(--ink-3); }
   .start h3 { font: 700 1.25rem/1.2 var(--display); letter-spacing: -0.02em; }
   .copytext { background: var(--paper); border: 2px solid var(--ink); padding: 0.5rem 0.85rem; min-height: 2.75rem; font: 700 0.8125rem/1.1 var(--sans); color: var(--ink); cursor: pointer; min-width: 7.5rem; transition: background-color 150ms, color 150ms; }
-  .acts { display: inline-flex; gap: 0.5rem; }
+  .acts { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; }
+  .export-error { margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--ink-2); }
   .copytext:hover { background: var(--ink); color: var(--paper); }
   .start ol { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; }
   .start li { display: grid; grid-template-columns: 1.5rem 7.75rem 15.5rem minmax(0, 1fr) 9rem; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }

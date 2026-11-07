@@ -49,6 +49,7 @@
 <script lang="ts">
   import DeadlineControl from '../components/DeadlineControl.svelte'
   import SnapshotReport from '../components/SnapshotReport.svelte'
+  import SnapshotActions from '../components/SnapshotActions.svelte'
   import { createSnapshot, parseSnapshot } from '../lib/snapshot'
   import { ui } from '../lib/state.svelte'
   import { tick, onDestroy, onMount } from 'svelte'
@@ -75,6 +76,13 @@
   let exampleRun = 0
   let fileReadRun = 0
   let priority = $state('all')
+  let coverage = $state<HTMLElement>()
+  let filterInput = $state<HTMLInputElement>()
+  function viewResults() {
+    coverage?.focus({ preventScroll: true })
+    coverage?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+  }
+  function clearFilters() { filter = ''; priority = 'all'; shown = 50; filterInput?.focus() }
 
   // the worked example: a small fixed file every visitor fetches, analysed exactly like a pasted list
   async function example() {
@@ -120,6 +128,7 @@
       Object.assign(watch, { ids, ...res, example: false })
       shown = 50
       filter = ''
+      priority = 'all'
     } catch (e) {
       if (!controller.signal.aborted && run === analysisRun) err = `Analysis failed: ${String((e as Error).message ?? e)}. Your list is still only in this browser; retry when the connection is available.`
     } finally {
@@ -254,17 +263,21 @@
     </div>
     {#if watch.baseline}<p class="analysis-progress">Comparing with public data from {dateShort(watch.baseline.generated.slice(0, 10))}. You can edit the restored list before analysing again. <button class="linklike" onclick={() => { fileReadRun++; watch.baseline = null }}>Remove comparison</button></p>{/if}
     {#if busy}<p class="analysis-progress" role="status">Loading public index: {num(analysisDone)} of {num(indexParts)} files. The same files are requested for every list.</p>{/if}
+    {#if !busy && !stale && !watch.example && watch.ids.length}
+      <div class="analysis-ready"><p role="status">Analysis ready: {num(n)} matched, {num(watch.missing.length)} not found, {num(watch.rejected.length)} rejected.</p><button class="linklike" onclick={viewResults}>View results</button></div>
+    {/if}
     {#if err}<p class="err" role="alert">{err}</p>{/if}
   </div>
   <aside class="privacy">
     <h3 class="kicker">Your list stays in this browser</h3>
-    <ul>
-      <li>The analysis runs on this page. Every visitor downloads the same public data files, so the site never learns which CVEs you entered.</li>
+    <p>Analysis runs here, using the same public files for everyone. Your CVE list is never uploaded.</p>
+    <p><b>Nothing is saved automatically.</b> Reloading or closing this tab wipes the session. Download a snapshot to keep it.</p>
+    <details><summary>How privacy works</summary><ul>
       <li>The site's security policy blocks this page from contacting any other server.</li>
-      <li>Nothing is saved automatically. Reloading or closing the tab wipes this session. Clear removes it from the page, with one undo step.</li>
+      <li>Clear removes your list from the page, with one undo step.</li>
       <li>Snapshots and handovers are saved only when you download them. They contain your CVE list: keep them private. Clear does not delete downloaded files or clipboard copies.</li>
-      <li>Two things are outside the page's control: browser extensions can read any page, and the NVD, CVE.org and CISA links in a case record take that one ID to that site if you click them.</li>
-    </ul>
+      <li>Browser extensions can read any page. The NVD, CVE.org and CISA links in a case record take that one ID to that site if you click them.</li>
+    </ul></details>
   </aside>
 </section>
 
@@ -275,7 +288,7 @@
   </section>
 {:else if watch.ids.length}
   {#if watch.example}<p class="exnote"><b>A worked example.</b> These are 14 well-known CVEs. Paste or drop your own list above and press Analyse to replace them; your list never leaves this browser.</p>{/if}
-  <section class="coverage" aria-label="Analysis coverage">
+  <section class="coverage" aria-label="Analysis coverage" tabindex="-1" bind:this={coverage}>
     <p role="status"><b>{num(watch.ids.length)} submitted</b> · {num(n)} matched · {num(watch.missing.length)} not found · {num(watch.rejected.length)} rejected</p>
     {#if watch.missing.length || watch.rejected.length}
       <details class="unmatched">
@@ -286,6 +299,7 @@
     {/if}
   </section>
   {#if n}<div class="result-controls"><DeadlineControl /></div>{/if}
+  {#if snapshot && !busy}<SnapshotActions {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} />{/if}
   {#if !n}
     <section class="no-match" role="status">
       <h3>No CVEs matched this analysis</h3>
@@ -309,15 +323,17 @@
 
   <div class="filters">
     <div><label class="filter-label" for="watch-filter">Filter by CVE, vendor or product</label>
-      <input id="watch-filter" class="filter-input" bind:value={filter} placeholder="e.g. CVE-2024-3400 or Microsoft"></div>
+      <input id="watch-filter" class="filter-input" bind:this={filterInput} bind:value={filter} placeholder="e.g. CVE-2024-3400 or Microsoft"></div>
     <div><label class="filter-label" for="watch-priority">Priority</label>
       <select id="watch-priority" class="filter-input" bind:value={priority}>
         <option value="all">All priorities</option>
         {#each TIERS as t, i (t.label)}<option value={String(i)}>{t.label}</option>{/each}
       </select></div>
   </div>
-  <Figure n={17} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Showing {num(filteredItems.length)} of {num(n)} matching CVEs. Priority table CSV export reflects filters; summaries and charts use the full analysed list." csv={csvRows}>
-    {#snippet legend()}{#each TIERS as t, i (t.label)}<span><span class="chip" class:solid-red={i === 0} class:red={i === 1}>{t.label}</span> {t.note}</span>{/each}{/snippet}
+  <p class="filter-count" role="status">Showing {num(filteredItems.length)} of {num(n)} matching CVEs.</p>
+  <Figure n={17} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Priority table CSV export reflects filters; summaries and charts use the full analysed list." csv={csvRows}>
+    {#snippet legend()}{#if filteredItems.length}{#each TIERS as t, i (t.label)}<span><span class="chip" class:solid-red={i === 0} class:red={i === 1}>{t.label}</span> {t.note}</span>{/each}{/if}{/snippet}
+    {#if filteredItems.length}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
     <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
       <table class="data">
@@ -341,11 +357,14 @@
       </table>
     </div>
     {#if shown < filteredItems.length}<button class="linklike more" onclick={() => (shown += 100)}>Show more ({num(filteredItems.length - shown)} left)</button>{/if}
+    {:else}
+      <div class="empty-filter"><p>No CVEs match these filters.</p><button class="btn" onclick={clearFilters}>Clear filters</button></div>
+    {/if}
   </Figure>
 
   {#if snapshot && !busy}<SnapshotReport {snapshot} baseline={watch.baseline} includeDeadlines={ui.kevDeadlines} {openCve} />{/if}
 
-  <section class="descs" aria-live="polite">
+  <section class="descs" id="descriptions" aria-label="CVE descriptions" tabindex="-1" aria-live="polite">
     {#if descReady}
       <p><b>Descriptions loaded.</b> They show in the table and in each case record.</p>
     {:else if watch.dl.running}
@@ -361,7 +380,7 @@
           <span class="muted">This downloads the full NVD text for every CVE ({shards.length} files, about 40 MB). Everyone downloads the same files, so it reveals nothing about your list. Repeat downloads come from your browser's cache.</span>
           {#if watch.dl.error}<span class="err" role="alert">{watch.dl.error}. Check the connection and try again.</span>{/if}
         </div>
-        <button class="btn" onclick={() => loadDescs(shards)}>{watch.dl.error ? 'Retry' : 'Download descriptions'}</button>
+        <button id="download-descriptions" class="btn" onclick={() => loadDescs(shards)}>{watch.dl.error ? 'Retry' : 'Download descriptions'}</button>
       </div>
     {/if}
   </section>
@@ -431,6 +450,13 @@
 {/if}
 
 <style>
+  .analysis-ready { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; font-size: 0.875rem; }
+  .analysis-ready p { margin: 0; }
+  .analysis-ready button { min-height: 2.75rem; font-weight: 600; }
+  .coverage, .descs { scroll-margin-top: 4rem; }
+  .filter-count { margin: 0 0 1rem; font-size: 0.875rem; color: var(--ink-2); }
+  .empty-filter { padding: 1.5rem; text-align: center; }
+  .empty-filter p { margin: 0 0 0.75rem; }
   .snapshot-load { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; padding-top: 0.75rem; border-top: 1px solid var(--rule); }
   .snapshot-load p { flex: 1 1 17rem; margin: 0; max-width: 65ch; font-size: 0.875rem; color: var(--ink-2); }
   .result-controls { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
@@ -457,6 +483,8 @@
   .analysis-progress { margin: 0; color: var(--ink-2); font-size: 0.875rem; }
   .err { color: var(--ink-2); font-size: 0.875rem; margin: 0; display: block; }
   .privacy { border-top: 2px solid var(--rule-strong); padding-top: 0.8rem; font-size: 0.875rem; color: var(--ink-2); }
+  .privacy p { margin: 0.75rem 0 0; }
+  .privacy summary { cursor: pointer; font-weight: 600; padding: 0.75rem 0; }
   .privacy ul { margin: 0.75rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.55rem; }
   .privacy li { position: relative; padding-left: 1.25rem; }
   .privacy li::before { content: ''; position: absolute; left: 0; top: 0.7em; width: 8px; height: 2px; background: var(--ink); }

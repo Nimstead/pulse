@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, tick } from 'svelte'
   import { routePath, readLocation, ROUTES } from './lib/routes'
   import { isoWeek, dateLong, num, type Month, type Kev, type Meta, type Epss, type Ranked } from './lib/data'
   import { readPeriod } from './lib/period'
@@ -89,6 +89,13 @@
   }
   const openCve = (id: string) => (ui.cve = id)
   const openVendor = (key: string) => { ui.vendor = key; go('vendors') }
+  async function showDescriptions() {
+    go('watchlist')
+    await tick()
+    const target = document.getElementById('download-descriptions') ?? document.getElementById('descriptions')
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView({ block: 'center' })
+  }
 
   function onkey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); ui.search = true }
@@ -187,7 +194,7 @@
     </div>
   </div>
   <Search bind:open={ui.search} kev={data.kev} vendors={data.vendors.rows} oncve={openCve} onvendor={openVendor} />
-  <Sheet epssDate={scoreDate(data.meta.epss)} nvdDate={data.meta.nvd.slice(0, 10)} bind:id={ui.cve} {kevById} {today} local={watchRow} cweNames={data.cwe.names ?? {}} />
+  <Sheet epssDate={scoreDate(data.meta.epss)} nvdDate={data.meta.nvd.slice(0, 10)} bind:id={ui.cve} {kevById} {today} local={watchRow} onDescriptions={showDescriptions} cweNames={data.cwe.names ?? {}} />
 {/if}
 
 <style>

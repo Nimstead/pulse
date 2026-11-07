@@ -2,8 +2,8 @@
   import { num, pct } from '../lib/data'
 
   type Row = { key: string; label: string; sub?: string; value: number; kev: number; spark?: number[] }
-  let { rows, valueLabel = 'CVEs', kevLabel = 'Exploited', selected = '', onpick, tone = 'ink', byKev = false, showRate = false }: {
-    rows: Row[]; valueLabel?: string; kevLabel?: string; selected?: string; onpick?: (key: string) => void; byKev?: boolean; showRate?: boolean; tone?: 'ink' | 'red'
+  let { rows, valueLabel = 'CVEs', kevLabel = 'Exploited', trendLabel = 'Trend', selected = '', onpick, controls, tone = 'ink', byKev = false, showRate = false }: {
+    rows: Row[]; valueLabel?: string; kevLabel?: string; trendLabel?: string; selected?: string; onpick?: (key: string, event: MouseEvent) => void; controls?: string; byKev?: boolean; showRate?: boolean; tone?: 'ink' | 'red'
   } = $props()
 
   const max = $derived(Math.max(1, ...rows.map((r) => r.value)))
@@ -17,13 +17,13 @@
 <div class="rows" class:red={tone === "red"} role="table" aria-label="Ranked list">
   <div class="head" role="row">
     <span role="columnheader">#</span><span role="columnheader">Name</span><span role="columnheader" class="r">{valueLabel}</span>
-    <span role="columnheader" class="r">{kevLabel}</span><span role="columnheader" class="sp">Trend</span>
+    <span role="columnheader" class="r">{kevLabel}</span><span role="columnheader" class="sp">{trendLabel}</span>
   </div>
   {#each rows as r, i (r.key)}
     <div class="row" class:pick={!!onpick} class:sel={selected === r.key} role="row" style:--d="{Math.min(i, 20) * 22}ms">
       <span class="rank" role="cell">{i + 1}</span>
       <span class="name" role="cell">
-        {#if onpick}<button class="label" aria-pressed={selected === r.key} onclick={() => onpick(r.key)}>{r.label}</button>{:else}<span class="label">{r.label}</span>{/if}{#if r.sub}<span class="sub">{r.sub}</span>{/if}
+        {#if onpick}<button class="label" aria-pressed={selected === r.key} aria-controls={controls} onclick={(event) => onpick(r.key, event)}>{r.label}</button>{:else}<span class="label">{r.label}</span>{/if}{#if r.sub}<span class="sub">{r.sub}</span>{/if}
         <span class="bar" aria-hidden="true">{#if byKev}<b style:width="{(r.kev / maxKev) * 100}%"></b>{:else}<i style:width="{(r.value / max) * 100}%"></i><b style:width="{(r.kev / max) * 100}%"></b>{/if}</span>
       </span>
       <span class="r v" role="cell">{num(r.value)}</span>
