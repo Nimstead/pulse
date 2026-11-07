@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -31,14 +31,39 @@ jobs:
           path: .cache
           key: feeds-${{ github.run_id }}
           restore-keys: feeds-
+      - run: node --test scripts/indexnow.test.mjs
       - run: npm ci
       - run: npm test
       - run: npm run check
       - run: python etl/build.py
       - run: npm run build
-      - uses: cloudflare/wrangler-action@v4
+      - id: publish
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '4.157.0'
           command: deploy
+      - name: Restore IndexNow submission state
+        if: steps.publish.outcome == 'success'
+        uses: actions/cache/restore@v6
+        with:
+          path: .indexnow/state.json
+          key: indexnow-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: indexnow-${{ github.ref_name }}-
+      - name: Submit changed pages to Bing IndexNow
+        if: steps.publish.outcome == 'success'
+        run: node scripts/indexnow.mjs
+      - name: Save IndexNow submission state
+        if: success() && steps.publish.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: .indexnow/state.json
+          key: indexnow-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Upload Bing receipt
+        if: always() && steps.publish.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: indexnow-receipt
+          path: .indexnow/receipt.json
+          if-no-files-found: ignore

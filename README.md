@@ -62,3 +62,22 @@ The bundled fonts (Archivo, Geist Mono) are under the SIL Open Font Licence. The
 `npm run build` renders the same Svelte reports into `/`, `/exploitation/`, `/severity/`, `/vendors/`, `/week/` and `/watchlist/`, then checks the HTML and sitemap. The daily workflow therefore refreshes both the readable HTML and interactive data together. Public reports have distinct titles, descriptions and self-canonicals. The sitemap excludes the personal watchlist tool.
 
 Old `#/week` style links still work. Filters remain in fragments and do not reach the server. Watchlist input remains memory-only. The static report stays visible if the interactive data fails to load.
+
+## IndexNow
+
+After a successful production deployment, `node scripts/indexnow.mjs` checks the
+live ownership key and page content, then submits new, changed, or removed sitemap
+URLs directly to Bing. The initial run submits the current sitemap; subsequent runs
+compare HTML hashes with the last accepted submission stored in the Actions cache.
+Cache eviction causes a fresh baseline submission. Query strings and fragments are
+never submitted. No private watchlist content is included.
+
+The workflow summary and `indexnow-receipt` artifact record Bing's response: HTTP
+200 means received; 202 means received with key validation pending. Other responses
+fail the step and leave the prior state intact for the next deployment. Neither
+response guarantees indexing. `node scripts/indexnow.mjs --dry-run` lists candidates
+without submitting. The ownership key in `indexnow.json` is deliberately served as
+a public root-level text file; it is not a Cloudflare or Bing account credential.
+
+The workflow requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository
+secrets for deployment. IndexNow does not run when deployment is skipped or fails.
