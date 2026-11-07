@@ -23,7 +23,7 @@
   const kevByVendor = $derived.by(() => { const m = new Map<string, number>(); for (const k of kevIn) m.set(k.nv, (m.get(k.nv) ?? 0) + 1); return m })
   const kevByCwe = $derived.by(() => { const m = new Map<string, number>(); for (const k of kevIn) if (k.cwe) m.set(k.cwe, (m.get(k.cwe) ?? 0) + 1); return m })
   const vendorKevN = (key: string) => kevByVendor.get(key) ?? 0
-  let by = $state<'cves' | 'kev'>('kev')
+  const by = $derived(ui.vendorSort === 'cves' ? 'cves' : 'kev')
   function rank(src: { years: string[]; rows: Ranked[] }, n: number, label: (r: Ranked) => string, skip = (_: Ranked) => false, sort: 'cves' | 'kev' = 'cves', kevOf: (r: Ranked) => number = (r) => r.kev) {
     const [a, b] = span(src.years)
     return src.rows.filter((r) => !skip(r)).map((r) => ({
@@ -32,7 +32,7 @@
     })).sort((x, y) => (sort === 'kev' ? y.kev - x.kev || y.value - x.value : y.value - x.value)).slice(0, n)
   }
   const vRows = $derived(rank(vendors, 20, (r) => titleCase(r.key), undefined, by, (r) => vendorKevN(r.key)))
-  let cby = $state<'cves' | 'kev'>('kev')
+  const cby = $derived(ui.cweSort === 'cves' ? 'cves' : 'kev')
   const cRows = $derived(rank(cwe, 15, (r) => r.name ?? r.key, (r) => r.key.startsWith('NVD-CWE'), cby, (r) => kevByCwe.get(r.key) ?? 0).map((r) => ({ ...r, sub: r.key })))
 
   const kevCwe = $derived([...cwe.rows].filter((r) => !r.key.startsWith('NVD-CWE')).map((r) => ({ ...r, kev: kevByCwe.get(r.key) ?? 0 })).sort((x, y) => y.kev - x.kev)[0])
@@ -58,8 +58,8 @@
   <Figure n={13} name="top-vendors" title={by === 'kev' ? 'Vendors with the most exploited CVEs' : 'Vendors with the most CVEs'} sub="CVEs published {y0}{y0 === y1 ? '' : `–${y1}`}. Exploited counts KEV listings added {monthShort(m0)} to {monthShort(m1)}. Trend shows the last 10 years."
     csv={() => vRows.map((r) => ({ vendor: r.key, cves: r.value, exploited_in_period: r.kev }))}>
     <div class="toggle" role="group" aria-label="Rank vendors by">
-      <button aria-pressed={by === 'cves'} onclick={() => { by = 'cves'; ui.vendor = '' }}>Most CVEs</button>
-      <button aria-pressed={by === 'kev'} onclick={() => { by = 'kev'; ui.vendor = '' }}>Most exploited</button>
+      <button aria-pressed={by === 'cves'} onclick={() => { ui.vendorSort = 'cves'; ui.vendor = '' }}>Most CVEs</button>
+      <button aria-pressed={by === 'kev'} onclick={() => { ui.vendorSort = 'kev'; ui.vendor = '' }}>Most exploited</button>
     </div>
     <Rows rows={vRows} selected={ui.vendor} onpick={pick} byKev={by === 'kev'} valueLabel="CVEs {y0.slice(2)}–{y1.slice(2)}" kevLabel="KEV in period" />
   </Figure>
@@ -92,8 +92,8 @@
 <Figure n={14} name="top-weaknesses" title={cby === 'kev' ? 'The weaknesses behind the most exploited CVEs' : 'The weaknesses behind the most CVEs'} sub="CWE types; CVEs published {y0}{y0 === y1 ? '' : `–${y1}`}. Exploited counts KEV listings added {monthShort(m0)} to {monthShort(m1)}."
   csv={() => cRows.map((r) => ({ cwe: r.key, name: r.label, cves: r.value, exploited_in_period: r.kev }))}>
   <div class="toggle" role="group" aria-label="Rank weaknesses by">
-    <button aria-pressed={cby === 'cves'} onclick={() => (cby = 'cves')}>Most CVEs</button>
-    <button aria-pressed={cby === 'kev'} onclick={() => (cby = 'kev')}>Most exploited</button>
+    <button aria-pressed={cby === 'cves'} onclick={() => (ui.cweSort = 'cves')}>Most CVEs</button>
+    <button aria-pressed={cby === 'kev'} onclick={() => (ui.cweSort = 'kev')}>Most exploited</button>
   </div>
   <Rows rows={cRows} byKev={cby === 'kev'} valueLabel="CVEs {y0.slice(2)}–{y1.slice(2)}" kevLabel="KEV in period" />
   {#snippet notes()}CVEs that NVD marks as having insufficient information or "Other" weakness types are left out. Injection and memory-safety classes top this list.{/snippet}

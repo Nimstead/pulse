@@ -25,7 +25,7 @@
     return [...g].map(([name, rows]) => ({ name, rows, top: rows[0] }))
   })
   const ageMo = (pub: string) => (+b.slice(0, 4) - +pub.slice(0, 4)) * 12 + (+b.slice(5, 7) - +pub.slice(5, 7))
-  const kevPub = $derived(kev.filter((k) => k.pub && k.pub.slice(0, 7) >= a && k.pub.slice(0, 7) <= (selFull.at(-1)?.ym ?? b)))
+  const kevPub = $derived(selFull.length ? kev.filter((k) => k.pub && k.pub.slice(0, 7) >= a && k.pub.slice(0, 7) <= selFull.at(-1)!.ym) : [])
   const kevMix = $derived(SEV.map((s) => kevPub.filter((k) => k.sev === s.full).length))
   const critOfKev = $derived(share(kevMix)[0])
   const notCritKev = $derived(1 - share(kevMix)[0])
@@ -40,14 +40,17 @@
 
 <header class="view-head">
   <h2>Severity and exploit likelihood</h2>
-  {#if kevPub.length}<p class="insight"><b>{pct(notCritKev)}</b> of the exploited CVEs published {monthShort(a)} to {monthShort(b)} were not rated Critical.</p>{/if}
+  {#if kevPub.length}<p class="insight"><b>{pct(notCritKev)}</b> of the exploited CVEs published {monthShort(a)} to {monthShort(selFull.at(-1)!.ym)} were not rated Critical.</p>{/if}
   <p>CVSS says how bad a flaw could be. EPSS estimates how likely it is to be exploited. The two often disagree, and the gap shows where severity alone misleads.</p>
 </header>
 <div class="view-period"><Period {months} compact /></div>
 
-<Figure n={8} name="severity-exploited" title="Critical is not the whole story" sub="Severity of CVEs published {monthShort(a)} to {monthShort(b)}: all of them, and those later exploited"
-  csv={() => SEV.map((s, i) => ({ severity: s.label, all_cves: allMix[i], exploited: kevMix[i] }))}>
+<Figure n={8} name="severity-exploited" title="Critical is not the whole story" sub={selFull.length ? `Severity of CVEs published ${monthShort(a)} to ${monthShort(selFull.at(-1)!.ym)}: all of them, and those later listed in KEV. Complete months only.` : 'Complete months only; the current month is still in progress.'}
+  csv={selFull.length ? () => SEV.map((s, i) => ({ severity: s.label, all_cves: allMix[i], exploited: kevMix[i] })) : undefined}>
   {#snippet legend()}{#each SEV as s (s.key)}<span><span class="swatch" style:background={SEV_COLOR[s.key]}></span> {s.label}</span>{/each}{/snippet}
+  {#if !selFull.length}
+    <p>No complete month in this selection. Choose a longer period to compare severity; the charts below still show the available partial-month data.</p>
+  {:else}
   <div class="hbars">
     {#each [{ label: 'All CVEs', n: sum(allMix, (x) => x), mix: allMix }, { label: 'Published in period, later in KEV', n: kevPub.length, mix: kevMix }] as r (r.label)}
       <div class="hrow">
@@ -61,6 +64,7 @@
       </div>
     {/each}
   </div>
+  {/if}
   {#snippet notes()}
     {#if kevPub.length}{pct(notCritKev)} of exploited CVEs from this period were <b>not</b> rated Critical. A "patch Criticals first" policy alone would miss them. Critical CVEs are {pct(critOfKev)} of the exploited set but {pct(share(allMix)[0])} of all CVEs, so severity is a weak filter on its own.{/if}
   {/snippet}
@@ -77,10 +81,10 @@
       { key: 'all', label: 'All CVEs not in KEV', color: 'var(--vol)', values: epss.all.map((v) => v / (allTot || 1)) },
       { key: 'kev', label: 'CVEs in KEV', color: 'var(--kev)', values: epss.kev.map((v) => v / (kevTot || 1)) },
     ]} tick={(l) => l} />
-  {#snippet notes()}{num(highEpss)} CVEs that are not in KEV score 10% or more. That is the likely-targets list below: likely targets with no CISA listing yet.{/snippet}
+  {#snippet notes()}{num(highEpss)} CVEs not currently in KEV score 10% or more. The list below is a capped subset of these elevated EPSS signals; confirm whether affected products and versions are present in your environment.{/snippet}
 </Figure>
 
-<Figure n={10} name="epss-watchlist" title="Likely targets: high EPSS, not yet in KEV" sub="One row per product with EPSS of 10% or more and no KEV listing yet, ranked by its highest EPSS. It draws on the {num(watch.length)} CVEs published {monthShort(a)} to {monthShort(b)} among the 300 highest-EPSS CVEs not in KEV, of {num(epss.watchTotal)} at 10% or more overall."
+<Figure n={10} name="epss-watchlist" title="Elevated EPSS, not currently in KEV" sub="One row per product with EPSS of 10% or more and no current KEV listing, ranked by its highest EPSS. It draws on the {num(watch.length)} CVEs published {monthShort(a)} to {monthShort(b)} among the 300 highest-EPSS CVEs not in KEV, of {num(epss.watchTotal)} at 10% or more overall. EPSS estimates probability; it does not establish exposure or exploitation."
   csv={() => watch.map((w) => ({ cve: w.id, epss: w.epss, percentile: w.pct, vendor: w.vendor, product: w.product, severity: w.sev, score: w.score, published: w.pub }))}>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
   <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">

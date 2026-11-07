@@ -1,8 +1,8 @@
 <script lang="ts">
   import { shard, num, pct, epssPct, dateLong, daysBetween, titleCase, SEV_COLOR, type Kev, type CveRow } from '../lib/data'
 
-  let { id = $bindable(), kevById, today, local, cweNames = {} }: {
-    id: string; kevById: Map<string, Kev>; today: string; local?: (id: string) => CveRow | null | undefined; cweNames?: Record<string, string>
+  let { id = $bindable(), kevById, today, local, cweNames = {}, epssDate, nvdDate }: {
+    id: string; kevById: Map<string, Kev>; today: string; local?: (id: string) => CveRow | null | undefined; cweNames?: Record<string, string>; epssDate?: string; nvdDate?: string
   } = $props()
 
   let dlg: HTMLDialogElement
@@ -10,6 +10,7 @@
   let failed = $state(false)
   let closing = $state(false)
   const kev = $derived(id ? kevById.get(id) : undefined)
+  const epssScore = $derived(row?.[8] ?? kev?.epss ?? null)
 
   $effect(() => {
     if (!id) return
@@ -67,6 +68,8 @@
         {#if row?.[2]}<span class="chip">NVD: {row[2]}</span>{/if}
       </div>
 
+      <p class="provenance">{#if nvdDate}NVD feed through {dateLong(nvdDate)}{#if epssDate} · {/if}{/if}{#if epssDate}EPSS score dated {dateLong(epssDate)}{/if}</p>
+
       {#if kev?.name}<p class="name">{kev.name}</p>{/if}
       {#if row?.[9]}<p class="desc">{row[9]}</p>{/if}
 
@@ -74,12 +77,17 @@
         <div><dt>Vendor</dt><dd>{kev?.vendor || titleCase(row?.[6] || '—')}</dd></div>
         <div><dt>Product</dt><dd>{kev?.product || titleCase(row?.[7] || '—')}</dd></div>
         <div><dt>Weakness</dt><dd>{#if row?.[5] || kev?.cwe}{@const w = (row?.[5] || kev?.cwe)!}{cweNames[w] ?? w}{#if cweNames[w]}&nbsp;<span class="muted cwe">{w}</span>{/if}{:else}—{/if}</dd></div>
-        <div><dt>EPSS</dt><dd>{#if (row?.[8] ?? kev?.epss) != null}{epssPct((row?.[8] ?? kev?.epss) as number)} <span class="muted">chance of exploitation activity in 30 days</span>{:else}—{/if}</dd></div>
+        <div><dt>EPSS</dt><dd>{#if epssScore != null}{epssPct(epssScore)} <span class="muted">estimated probability of exploitation activity in 30 days</span>{:else}Unavailable{/if}</dd></div>
       </dl>
 
-      {#if (row?.[8] ?? kev?.epss) != null}
-        <div class="meter" aria-hidden="true"><i style:width="{((row?.[8] ?? kev?.epss) as number) * 100}%"></i></div>
+      {#if epssScore != null}
+        <div class="meter" aria-hidden="true"><i style:width="{epssScore * 100}%"></i></div>
       {/if}
+
+      <p class="triage">
+        {#if kev}CISA KEV lists this CVE based on evidence of exploitation. Check whether an affected product and version are in your environment; use CISA and vendor guidance to determine remediation. The listed due date is for US federal agencies.{:else}No KEV entry is shown in this snapshot. Check product and version applicability against your inventory and review vendor guidance.{/if}
+        {#if epssScore == null} EPSS is unavailable in this snapshot; this does not mean low risk.{:else if !kev && epssScore >= 0.1} Elevated EPSS is a probability signal, not confirmation of exposure or exploitation.{/if}
+      </p>
 
       <p class="links">
         <a href="https://nvd.nist.gov/vuln/detail/{id}" target="_blank" rel="noopener noreferrer">NVD record {@render ext()}</a>
@@ -121,6 +129,8 @@
   .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1rem 0; }
   .name { font: 700 1.25rem/1.25 var(--display); letter-spacing: -0.02em; margin: 0 0 0.6rem; }
   .desc { color: var(--ink-2); font-size: 0.9375rem; margin: 0 0 1.25rem; }
+  .provenance { margin: -0.5rem 0 1rem; color: var(--ink-3); font-size: 0.8rem; }
+  .triage { background: var(--shade); border-left: 3px solid var(--ink-2); padding: 0.75rem 0.9rem; margin: 0 0 1.25rem; font-size: 0.875rem; color: var(--ink-2); }
   .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.25rem; margin: 0 0 0.75rem; }
   .facts div { border-top: 1px solid var(--rule); padding-top: 0.5rem; }
   dt { font: 600 0.6875rem/1.3 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }

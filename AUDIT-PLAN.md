@@ -64,3 +64,26 @@ Do the tasks in order. Each one is small and can ship on its own.
 - **Change:** hoist `ex = set(EXAMPLE)` out of the comprehension.
 
 Left out: 2 cosmetic items (Overview shows "0.0×" for periods before KEV existed; Week's "Top EPSS" fallback would print 0.0% for a CVE with no EPSS yet).
+
+## Completed product and accessibility review — 7 November 2026
+
+Reviewed the VM, SOC handover and community research workflows against the D3 and Web Interface Guidelines skills and Nimstead's current brand guidance. Kept the existing typography, monochrome structure and restrained exploitation accent; added no dependencies.
+
+Implemented source dates and coverage disclosures; clear routes into handover and private CVE triage; snapshot-based deadline windows; honest partial-month comparisons and missing-score labels; cancellable analysis with stale-result protection; local filters and dated CSV exports; explicit unmatched/rejected records; and guidance to check rejection reasons and replacement IDs before closing findings.
+
+Charts now provide keyboard instructions, predictable arrow/Home/End navigation, Escape dismissal and reduced-motion handling. CSV-backed figures offer paginated semantic data tables that update with the selected period. Search announces results and keeps the active option visible. Mobile navigation, weekly product labels and triage filters fit narrow screens. Shared links preserve weekly windows and ranking choices.
+
+### Review iterations
+
+- Separate VM, SOC and design reviewers proposed and checked changes.
+- A final Ponytail simplicity/source audit used GPT-6.1 Sol at Medium reasoning. Its three blockers (unmatched-only results, narrow filter layout and late file-read repopulation after Clear) were fixed and re-reviewed. No blockers remained in that source audit.
+
+### Verification evidence
+
+- Python ETL assertions and all ten Node test entries passed. On the installed Node 22.15 runtime, used `NODE_OPTIONS=--experimental-strip-types`; supplied a temporary `python` alias to the installed Python 3.13. The documented project minimum remains Node 22.18+.
+- `npm run check`: zero errors and warnings. `npm run build`: client, SSR and six SEO checks passed. `git diff --check` passed.
+- Browser checks covered all six sections at 320px, plus tablet/desktop and light/dark inspection. Fixed the observed Week and Watchlist horizontal overflow and rechecked both at 320px.
+- Exercised chart keys, sliders, skip link, search navigation, modal focus/Escape, live table updates, preserved URL filters, stale analysis suppression and unmatched/rejected-only results. Verified the current-month-only Severity empty state in the production preview.
+- Production PNG export was visually inspected: chart/context included, disclosure table and controls excluded. A filtered watchlist CSV was downloaded and parsed: exactly the selected CVE and snapshot date were present.
+
+Browser viewport testing does not replace physical-device or screen-reader testing. Reduced-motion implementation was source-reviewed; an OS-level motion-preference session was not run. No deployment was performed as part of this review.

@@ -8,7 +8,7 @@ export const MAX_IDS = 10000
 export const TIERS = [
   { label: 'Act now', note: 'Exploited in the wild, with known ransomware use' },
   { label: 'Exploited', note: 'Listed in CISA KEV' },
-  { label: 'Likely target', note: 'EPSS 10% or higher' },
+  { label: 'Elevated EPSS', note: 'EPSS score of 10% or higher' },
   { label: 'Severe', note: 'Critical or high severity' },
   { label: 'Monitor', note: 'Everything else' },
 ] as const
@@ -28,6 +28,11 @@ export function tier(r: IdxRow, kev?: Kev) {
 
 export const byPriority = (a: Item, b: Item) =>
   a.tier - b.tier || (b.row[8] ?? -1) - (a.row[8] ?? -1) || (b.row[3] ?? -1) - (a.row[3] ?? -1) || a.row[0].localeCompare(b.row[0])
+
+export function filterItems(items: Item[], query: string, priority: number | null = null) {
+  const q = query.trim().toLowerCase()
+  return items.filter(({ row, kev, tier }) => (priority == null || tier === priority) && (!q || [row[0], row[6], row[7], kev?.vendor, kev?.product].join(' ').toLowerCase().includes(q)))
+}
 
 /** Join the list against the full index and KEV. Runs entirely in memory; the index is the same file for every visitor. */
 export function analyse(ids: string[], index: IdxRow[], kevById: Map<string, Kev>) {

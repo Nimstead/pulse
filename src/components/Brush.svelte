@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Spring } from 'svelte/motion'
+  import { Spring, prefersReducedMotion } from 'svelte/motion'
   import { monthShort } from '../lib/data'
 
   let { values, labels, from = $bindable(), to = $bindable(), height = 52, ghost = null }: {
@@ -7,6 +7,7 @@
   } = $props()
 
   const n = $derived(labels.length)
+  const instructionsId = $props.id()
   const MIN = 1 // a shared URL may select a single month
   let width = $state(600)
   const px = $derived(width / Math.max(1, n)) // pixels per month
@@ -19,9 +20,10 @@
 
   let placed = false
   $effect(() => {
+    const reducedMotion = prefersReducedMotion.current
     const f = from, t = to + 1 // read before the drag guard, or the effect loses its dependencies after the first drag
     if (drag) return
-    if (!placed) { L.set(f, { instant: true }); R.set(t, { instant: true }); placed = true } // no glide on first paint
+    if (!placed || reducedMotion) { L.set(f, { instant: true }); R.set(t, { instant: true }); placed = true } // no glide on first paint
     else { L.target = f; R.target = t }
   })
 
@@ -82,7 +84,7 @@
     const v = b.t > a.t && e.timeStamp - b.t < 80 ? ((b.x - a.x) / (b.t - a.t)) * 1000 / px : 0 // months per second
     let l = L.current, r = R.current
     if (drag.mode === 'move') {
-      l = clamp(Math.round(l + project(v)), 0, n - drag.span)
+      l = clamp(Math.round(l + (prefersReducedMotion.current ? 0 : project(v))), 0, n - drag.span)
       r = l + drag.span
       // a flick earns a touch of bounce; a placed drop settles flat
       L.damping = R.damping = Math.abs(v) > 3 ? 0.72 : 0.92
@@ -91,7 +93,7 @@
     }
     drag = null
     commit(l, r)
-    L.target = from; R.target = to + 1
+    L.set(from, { instant: prefersReducedMotion.current }); R.set(to + 1, { instant: prefersReducedMotion.current })
     setTimeout(() => (L.damping = R.damping = 0.92), 600)
   }
 
@@ -112,7 +114,7 @@
 </script>
 
 <div class="brush" bind:clientWidth={width} style:height="{height + 18}px">
-  <div class="track" style:height="{height}px" onpointerdown={down} onpointermove={moveP} onpointerup={up} onpointercancel={up} role="presentation">
+  <div class="track" style:height="{height}px" onpointerdown={down} onpointermove={moveP} onpointerup={up} onpointercancel={up} role="group" aria-label="Period selection" aria-describedby={instructionsId}>
     <svg {width} {height} aria-hidden="true">
       {#each values as v, i (i)}
         <rect x={i * px} width={Math.max(0.6, px - (px > 4 ? 1 : 0))} y={height - Math.sqrt(v / max) * (height - 4)} height={Math.sqrt(v / max) * (height - 4)}
@@ -126,11 +128,12 @@
       role="slider" tabindex="0" aria-label="Selected period" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={from}
       aria-valuetext="{monthShort(labels[from])} to {monthShort(labels[to])}" onkeydown={(e) => keys(e, 'move')}></div>
     <!-- siblings of the window, not children: a slider cannot contain sliders -->
-    <span class="h" style:left="{L.current * px - 3}px" role="slider" tabindex="0" aria-label="Start month" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={from}
+    <span class="h" style:left="{L.current * px - 3}px" role="slider" tabindex="0" aria-label="Start month" aria-valuemin={0} aria-valuemax={to} aria-valuenow={from} aria-describedby={instructionsId}
       aria-valuetext={monthShort(labels[from])} onkeydown={(e) => keys(e, 'l')}></span>
-    <span class="h" style:left="{R.current * px - 5}px" role="slider" tabindex="0" aria-label="End month" aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={to}
+    <span class="h" style:left="{R.current * px - 5}px" role="slider" tabindex="0" aria-label="End month" aria-valuemin={from} aria-valuemax={n - 1} aria-valuenow={to} aria-describedby={instructionsId}
       aria-valuetext={monthShort(labels[to])} onkeydown={(e) => keys(e, 'r')}></span>
   </div>
+  <p class="sr-only" id={instructionsId}>Use Left and Right Arrow to move one month, Shift and Arrow to move one year, and Home or End to move to the beginning or end. On the selected period slider, arrows move the whole range. Drag the range to move it or drag either handle to change an endpoint.</p>
   <div class="years" aria-hidden="true">
     {#each years.filter((i) => i * px < width - 34) as i (i)}<span style:left="{i * px}px">{labels[i].slice(0, 4)}</span>{/each}
   </div>

@@ -45,12 +45,12 @@
 </script>
 
 <script lang="ts">
-  import { tick, onMount } from 'svelte'
+  import { tick, onDestroy, onMount } from 'svelte'
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
   import Rows from '../components/Rows.svelte'
   import { load, num, pct, epssPct, dateShort, addDays, kvp, sum, SEV, SEV_COLOR, share, epssBands, titleCase, vp, type Kev, type Epss, type Month, type Ranked } from '../lib/data'
-  import { parseIds, analyse, TIERS, MAX_IDS, type IdxRow } from '../lib/watchlist'
+  import { parseIds, analyse, filterItems, TIERS, MAX_IDS, type IdxRow } from '../lib/watchlist'
 
   let { months, kevById, epss, cwe, cweNames: names, shards, indexParts, today, openCve }: {
     months: Month[]; kevById: Map<string, Kev>; epss: Epss; cwe: Ranked[]; cweNames: Record<string, string>; shards: string[]; indexParts: number; today: string; openCve: (id: string) => void
@@ -58,48 +58,92 @@
 
   const parsed = $derived(parseIds(watch.text))
   let busy = $state(false)
+  let analysisDone = $state(0)
   let err = $state('')
   let dragging = $state(false)
   let shown = $state(50)
+  let filter = $state('')
+  let analysisController: AbortController | null = null
+  let analysisRun = 0
+  let submittedKey = ''
+  let exampleRun = 0
+  let fileReadRun = 0
+  let priority = $state('all')
 
   // the worked example: a small fixed file every visitor fetches, analysed exactly like a pasted list
   async function example() {
+    const run = ++exampleRun, initialText = watch.text
     exampleShown = true
     try {
       const ex = await load<{ ids: string[]; rows: IdxRow[] }>('example.json')
+      if (run !== exampleRun || watch.text !== initialText || busy || watch.items.length) return
       Object.assign(watch, { ids: ex.ids, ...analyse(ex.ids, ex.rows, kevById), example: true })
       shown = 50
-    } catch (e) { err = String((e as Error).message ?? e) }
+    } catch (e) { if (run === exampleRun) err = String((e as Error).message ?? e) }
   }
   onMount(() => { if (!exampleShown && !watch.text && !watch.items.length) example() })
+  function cancelAnalysis() {
+    analysisRun++
+    analysisController?.abort()
+    analysisController = null
+    busy = false
+  }
+  $effect(() => {
+    if (watch.text) exampleRun++
+    if (busy && parsed.ids.join() !== submittedKey) cancelAnalysis()
+  })
   async function run() {
+    exampleRun++
+    cancelAnalysis()
+    const ids = [...parsed.ids], key = ids.join(), run = ++analysisRun, controller = new AbortController()
+    analysisController = controller
+    submittedKey = key
+    analysisDone = 0
     busy = true; err = ''
     try {
       // every part, whatever is on the list; plain fetch, not the load() cache: the 45 MB index is dropped once the list is joined
       const parts = await Promise.all(Array.from({ length: indexParts }, async (_, i) => {
-        const r = await fetch(`/data/index-${i}.json`)
+        const r = await fetch(`/data/index-${i}.json`, { signal: controller.signal })
         if (!r.ok) throw new Error(`Could not load the CVE index (${r.status})`)
-        return (await r.json()) as IdxRow[]
+        const part = (await r.json()) as IdxRow[]
+        if (run === analysisRun) analysisDone++
+        return part
       }))
-      const res = analyse(parsed.ids, parts.flat(), kevById)
-      Object.assign(watch, { ids: parsed.ids, ...res, example: false })
+      if (run !== analysisRun || key !== parseIds(watch.text).ids.join()) return
+      const res = analyse(ids, parts.flat(), kevById)
+      Object.assign(watch, { ids, ...res, example: false })
       shown = 50
-    } catch (e) { err = String((e as Error).message ?? e) } finally { busy = false }
+      filter = ''
+    } catch (e) {
+      if (!controller.signal.aborted && run === analysisRun) err = `Analysis failed: ${String((e as Error).message ?? e)}. Your list is still only in this browser; retry when the connection is available.`
+    } finally {
+      if (run === analysisRun) { analysisController = null; busy = false }
+    }
   }
   let undo = $state<typeof watch | null>(null) // the list lives only in memory, so Clear keeps one undo step
   function clear() {
+    exampleRun++
+    fileReadRun++
+    cancelAnalysis()
     cancelDescs()
     undo = watch.example && !watch.text ? null : { ...watch, dl: { running: false, done: 0, total: 0, error: '' } }
     Object.assign(watch, { text: '', ids: [], items: [], missing: [], rejected: [], desc: {}, descFor: '', dl: { running: false, done: 0, total: 0, error: '' }, example: false })
     err = ''
   }
+  onDestroy(() => { cancelAnalysis(); exampleRun++; fileReadRun++ })
   async function readFiles(files: FileList | null | undefined) {
     if (!files?.length) return
+    const run = ++fileReadRun, initialText = watch.text
     const big = [...files].filter((f) => f.size > 20e6)
     if (big.length) { err = `${big.map((f) => f.name).join(', ')} is over 20 MB. Paste the relevant part instead.`; return }
-    const texts = await Promise.all([...files].map((f) => f.text())) // read in the browser; the file is never uploaded
-    watch.text = [watch.text.trim(), ...texts].filter(Boolean).join('\n')
-    err = ''
+    try {
+      const texts = await Promise.all([...files].map((f) => f.text())) // read in the browser; the file is never uploaded
+      if (run !== fileReadRun || watch.text !== initialText) return
+      watch.text = [initialText.trim(), ...texts].filter(Boolean).join('\n')
+      err = ''
+    } catch (e) {
+      if (run === fileReadRun) err = `Could not read the selected file: ${String((e as Error).message ?? e)}`
+    }
   }
 
   // the worked example is described as an example, never as the visitor's own list
@@ -114,6 +158,7 @@
   const unscoredN = $derived(items.filter((i) => !i.row[4]).length)
   const descReady = $derived(watch.descFor !== '' && watch.descFor === watch.ids.join())
   const stale = $derived(watch.ids.length > 0 && !watch.example && parsed.ids.join() !== watch.ids.join())
+  const filteredItems = $derived(filterItems(items, filter, priority === 'all' ? null : Number(priority)))
 
   const mineMix = $derived(SEV.map((s) => items.filter((i) => i.row[4] === s.full).length))
   const allMix = $derived(SEV.map((s) => sum(months, (m) => m[s.key])))
@@ -140,8 +185,8 @@
   const cweNames = $derived(new Map([...Object.entries(names), ...cwe.map((c) => [c.key, c.name ?? c.key] as [string, string])]))
   const weaknesses = $derived(group((i) => (i.row[5]?.startsWith('NVD-CWE') ? '' : i.row[5]), (k) => cweNames.get(k) ?? k, (k) => (cweNames.has(k) ? k : '')))
 
-  const csvRows = () => items.map(({ row: r, kev, tier }) => ({
-    priority: TIERS[tier].label, cve: r[0], published: r[1], status: r[2], severity: r[4], score: r[3], vendor: r[6], product: r[7], cwe: r[5],
+  const csvRows = () => filteredItems.map(({ row: r, kev, tier }) => ({
+    snapshot_date: today, priority: TIERS[tier].label, cve: r[0], published: r[1], status: r[2], severity: r[4], score: r[3], vendor: r[6], product: r[7], cwe: r[5],
     epss: r[8], epss_percentile: r[9], in_kev: !!kev, kev_added: kev?.added ?? '', kev_due: kev?.due ?? '', ransomware: kev?.ransom ?? false,
     description: watch.desc[r[0]] ?? '',
   }))
@@ -165,6 +210,7 @@
         {#if undo}<button class="btn" onclick={() => { Object.assign(watch, undo); undo = null }}>Undo clear</button>
         {:else}<button class="btn" onclick={example}>Show the example again</button>{/if}
       {/if}
+      {#if busy}<button class="btn" onclick={cancelAnalysis}>Cancel analysis</button>{/if}
       <button class="btn primary" onclick={run} disabled={!parsed.ids.length || busy}>
         {busy ? 'Analysing…' : parsed.ids.length ? `Analyse ${num(parsed.ids.length)} CVE${parsed.ids.length === 1 ? '' : 's'}` : 'Analyse'}
       </button>
@@ -176,6 +222,7 @@
         {:else if parsed.ids.length}{num(parsed.ids.length)} unique ID{parsed.ids.length === 1 ? '' : 's'} found{parsed.dupes ? `, ${num(parsed.dupes)} duplicate${parsed.dupes === 1 ? '' : 's'} ignored` : ''}{parsed.capped ? `. Only the first ${num(MAX_IDS)} are used` : ''}{stale ? '. The list has changed since the last analysis' : ''}.{/if}
       </span>
     </div>
+    {#if busy}<p class="analysis-progress" role="status">Loading public index: {num(analysisDone)} of {num(indexParts)} files. The same files are requested for every list.</p>{/if}
     {#if err}<p class="err" role="alert">{err}</p>{/if}
   </div>
   <aside class="privacy">
@@ -189,11 +236,23 @@
   </aside>
 </section>
 
-{#if n}
+{#if stale}
+  <section class="stale" role="alert">
+    <h3>Results are hidden because the input changed</h3>
+    <p>The textarea contains {num(parsed.ids.length)} unique CVE IDs. The previous result used {num(watch.ids.length)} IDs and contains {num(n)} analyzed CVEs, plus {num(watch.missing.length)} not found and {num(watch.rejected.length)} rejected. Reanalyse to show results. The previous analysis remains in this tab, but its charts and exports are unavailable until the input matches again or you reanalyse.</p>
+  </section>
+{:else if watch.ids.length}
+  {#if !n}
+    <section class="no-match" role="status">
+      <h3>No CVEs matched this analysis</h3>
+      <p>Submitted {num(watch.ids.length)} IDs: {num(watch.missing.length)} not found, {num(watch.rejected.length)} rejected.</p>
+    </section>
+  {/if}
+  {#if n}
   {#if watch.example}<p class="exnote"><b>A worked example.</b> These are 14 well-known CVEs. Paste or drop your own list above and press Analyse to replace them; your list never leaves this browser.</p>{/if}
   <p class="headline">
     {kevN ? `${num(kevN)} of ${your} ${num(n)} CVEs ${kevN === 1 ? 'is' : 'are'} exploited in the wild` : `None of ${your} ${num(n)} CVEs is listed as exploited in the wild`}{ransomN ? `, ${num(ransomN)} with known ransomware use` : ''}.
-    {likelyN ? `${num(likelyN)} more ${likelyN === 1 ? 'has' : 'have'} an EPSS of 10% or higher, so ${likelyN === 1 ? 'it is a likely target' : 'they are likely targets'}.` : ''}
+    {likelyN ? `${num(likelyN)} more ${likelyN === 1 ? 'has' : 'have'} an EPSS score of 10% or higher, an estimated probability of exploitation within the next 30 days.` : ''}
     {#if watch.missing.length || watch.rejected.length}<span class="aside">{[watch.missing.length && `${num(watch.missing.length)} not found`, watch.rejected.length && `${num(watch.rejected.length)} rejected`].filter(Boolean).join(', ')}; <a href="#watch-unmatched">see the end of the page</a>.</span>{/if}
   </p>
 
@@ -201,7 +260,7 @@
     <div><div class="kicker">Exploited (in KEV)</div><div class="big red">{num(kevN)}</div><div class="cmp">{pct(kevN / n)} of {yourList}</div></div>
     <div><div class="kicker">Known ransomware use</div><div class="big" class:red={ransomN > 0}>{num(ransomN)}</div><div class="cmp">KEV entries CISA links to ransomware</div></div>
     <div><div class="kicker">Past the CISA due date</div><div class="big">{num(overdueN)}</div><div class="cmp">US federal deadline, a useful outside benchmark</div></div>
-    <div><div class="kicker">EPSS 10% or higher</div><div class="big">{num(likelyN)}</div><div class="cmp">not in KEV yet</div></div>
+    <div><div class="kicker">Elevated EPSS · 10%+</div><div class="big">{num(likelyN)}</div><div class="cmp">not listed in KEV</div></div>
     <div><div class="kicker">Critical or high</div><div class="big">{num(severeN)}</div><div class="cmp">{pct(severeN / n)} of {yourList}, by CVSS</div></div>
     <div><div class="kicker">Not scored yet</div><div class="big">{num(unscoredN)}</div><div class="cmp">no CVSS from NVD or the CNA</div></div>
   </div>
@@ -227,14 +286,23 @@
     {/if}
   </section>
 
-  <Figure n={17} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Exploited first, then likely targets by EPSS, then by CVSS severity" csv={csvRows}>
+  <div class="filters">
+    <div><label class="filter-label" for="watch-filter">Filter by CVE, vendor or product</label>
+      <input id="watch-filter" class="filter-input" bind:value={filter} placeholder="e.g. CVE-2024-3400 or Microsoft"></div>
+    <div><label class="filter-label" for="watch-priority">Priority</label>
+      <select id="watch-priority" class="filter-input" bind:value={priority}>
+        <option value="all">All priorities</option>
+        {#each TIERS as t, i (t.label)}<option value={String(i)}>{t.label}</option>{/each}
+      </select></div>
+  </div>
+  <Figure n={17} name="your-cves-priority" title="{Your} CVEs in priority order" sub="Showing {num(filteredItems.length)} of {num(n)} matching CVEs. Priority table CSV export reflects filters; summaries and charts use the full analysed list." csv={csvRows}>
     {#snippet legend()}{#each TIERS as t, i (t.label)}<span><span class="chip" class:solid-red={i === 0} class:red={i === 1}>{t.label}</span> {t.note}</span>{/each}{/snippet}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
     <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
       <table class="data">
         <thead><tr><th>Priority</th><th>CVE</th><th>Vendor · product</th><th>Severity</th><th class="r">EPSS</th><th>KEV</th><th>Weakness</th></tr></thead>
         <tbody>
-          {#each items.slice(0, shown) as { row: r, kev, tier } (r[0])}
+          {#each filteredItems.slice(0, shown) as { row: r, kev, tier } (r[0])}
             <tr>
               <td><span class="chip" class:solid-red={tier === 0} class:red={tier === 1}>{TIERS[tier].label}</span></td>
               <td><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{r[1] ? dateShort(r[1]) : '—'}</div></td>
@@ -251,7 +319,7 @@
         </tbody>
       </table>
     </div>
-    {#if shown < items.length}<button class="linklike more" onclick={() => (shown += 100)}>Show more ({num(items.length - shown)} left)</button>{/if}
+    {#if shown < filteredItems.length}<button class="linklike more" onclick={() => (shown += 100)}>Show more ({num(filteredItems.length - shown)} left)</button>{/if}
   </Figure>
 
   <div class="grid-2">
@@ -315,12 +383,13 @@
   </div>
   {/if}
 
-  {#if watch.missing.length || watch.rejected.length}
-    <section id="watch-unmatched" class="unmatched">
-      {#if watch.missing.length}<h3 class="kicker">Not in the NVD feed ({num(watch.missing.length)})</h3><p>{watch.missing.join(', ')}. Check the IDs; very new CVEs can take a day to appear.</p>{/if}
-      {#if watch.rejected.length}<h3 class="kicker">Rejected by the CVE program ({num(watch.rejected.length)})</h3><p>{watch.rejected.join(', ')}. These are not vulnerabilities and can be closed.</p>{/if}
-    </section>
   {/if}
+{/if}
+{#if !stale && watch.ids.length && (watch.missing.length || watch.rejected.length)}
+  <section id="watch-unmatched" class="unmatched">
+    {#if watch.missing.length}<h3 class="kicker">Not in the NVD feed ({num(watch.missing.length)})</h3><p>{watch.missing.join(', ')}. Check the IDs; very new CVEs can take a day to appear.</p>{/if}
+    {#if watch.rejected.length}<h3 class="kicker">Rejected by the CVE program ({num(watch.rejected.length)})</h3><p>{watch.rejected.join(', ')}. These IDs were rejected. Check the CVE record for the reason and any replacement ID before closing a finding.</p>{/if}
+  </section>
 {/if}
 
 <style>
@@ -344,12 +413,19 @@
   .exnote { margin: 0 0 1rem; padding: 0.75rem 1rem; background: var(--shade); font-size: 0.9375rem; }
   .btn.primary:hover:not(:disabled) { background: var(--paper); color: var(--ink); }
   .status { font-size: 0.82rem; color: var(--ink-2); }
-  .err { color: var(--kev); font-size: 0.875rem; margin: 0; display: block; }
+  .analysis-progress { margin: 0; color: var(--ink-2); font-size: 0.875rem; }
+  .err { color: var(--ink-2); font-size: 0.875rem; margin: 0; display: block; }
   .privacy { border-top: 2px solid var(--rule-strong); padding-top: 0.8rem; font-size: 0.875rem; color: var(--ink-2); }
   .privacy ul { margin: 0.75rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.55rem; }
   .privacy li { position: relative; padding-left: 1.25rem; }
   .privacy li::before { content: ''; position: absolute; left: 0; top: 0.7em; width: 8px; height: 2px; background: var(--ink); }
   .headline { font: 500 clamp(1.25rem, 2.4vw, 1.6rem)/1.35 var(--display); letter-spacing: -0.02em; max-width: 62ch; margin: 0 0 1.5rem; }
+  .stale { border-left: 4px solid var(--ink); padding: 0.8rem 1rem; margin: 1rem 0 1.5rem; background: var(--shade); }
+  .stale h3, .stale p { margin: 0; }
+  .stale p { margin-top: 0.35rem; color: var(--ink-2); }
+  .filter-label { display: block; font-weight: 700; margin: 0 0 0.35rem; }
+  .filters { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(11rem, 0.5fr); gap: 0 1rem; max-width: 42rem; }
+  .filter-input { width: 100%; min-height: 2.75rem; padding: 0.5rem 0.7rem; border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink); font: 400 1rem var(--sans); margin-bottom: 0.8rem; }
   .headline .aside { display: block; font: 400 0.875rem var(--sans); color: var(--ink-3); margin-top: 0.4rem; }
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem clamp(1rem, 3vw, 3rem); margin-bottom: 1.75rem; }
   .tiles > div { border-top: 2px solid var(--rule-strong); padding-top: 0.8rem; }
@@ -366,7 +442,10 @@
   progress::-webkit-progress-value { background: var(--vol); transition: width 200ms; }
   progress::-moz-progress-bar { background: var(--vol); }
   .sm { font-size: 0.75rem; color: var(--ink-3); }
-  .overdue { color: var(--kev); }
+  .overdue { color: var(--ink); font-weight: 700; }
+  .no-match { border-top: 2px solid var(--rule-strong); padding: 1rem 0; margin: 1rem 0; }
+  .no-match h3, .no-match p { margin: 0; }
+  .no-match p { margin-top: 0.35rem; color: var(--ink-2); }
   td.desc { max-width: 46ch; }
   .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   .hbars { display: grid; gap: 1.1rem; }
@@ -380,6 +459,7 @@
   .unmatched { border-top: 1px solid var(--rule-strong); padding-top: 1rem; margin-top: 1.5rem; font-size: 0.875rem; color: var(--ink-2); scroll-margin-top: 5rem; }
   .unmatched p { margin: 0.35rem 0 1rem; overflow-wrap: anywhere; }
   @media (max-width: 900px) { .intake { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 560px) { .filters { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 720px) { .tiles { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .hrow { grid-template-columns: 1fr; gap: 0.35rem; } }
 </style>

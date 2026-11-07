@@ -4,6 +4,8 @@
   import { isoWeek, dateLong, num, type Month, type Kev, type Meta, type Epss, type Ranked } from './lib/data'
   import { readPeriod } from './lib/period'
   import { ui } from './lib/state.svelte'
+  import SourceStatus from './components/SourceStatus.svelte'
+  import { scoreDate } from './lib/sources'
   import Search from './components/Search.svelte'
   import Sheet from './components/Sheet.svelte'
   import Overview from './views/Overview.svelte'
@@ -39,7 +41,8 @@
 
   function readHash() {
     if (!data) return
-    const { route, params: p } = readLocation(location.pathname, location.hash)
+    const { route, params: p, windowDays, vendorSort, cweSort } = readLocation(location.pathname, location.hash)
+    Object.assign(ui, { windowDays, vendorSort, cweSort })
     ui.route = route
     const [from, to] = readPeriod(data.months.map((m) => m.ym), p.get('from'), p.get('to'))
     ui.from = from; ui.to = to
@@ -57,6 +60,8 @@
     if (!data) return
     const p = new URLSearchParams({ from: data.months[ui.from].ym, to: data.months[ui.to].ym })
     if (ui.vendor && ui.route === 'vendors') p.set('vendor', ui.vendor)
+    if (ui.route === 'week') p.set('days', String(ui.windowDays))
+    if (ui.route === 'vendors') { p.set('sort', ui.vendorSort); p.set('cweSort', ui.cweSort) }
     if (ui.cve && watchRow(ui.cve) === undefined) p.set('cve', ui.cve) // a private-list ID never reaches the URL or history
     const next = `${routePath(ui.route)}#?${p}`
     if (location.pathname + location.hash !== next) history.replaceState(null, '', next)
@@ -108,9 +113,9 @@
   <!-- product lockup: company in ExtraBold, product word in Regular; the seal belongs to the company mark only -->
   <h1><a href="/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('overview') }}><span class="co">Nimstead</span> <span class="prod">Pulse</span></a></h1>
   <div class="tools">
-    <button class="search" onclick={() => (ui.search = true)} aria-label="Search CVEs and vendors" aria-keyshortcuts="Control+K Meta+K">
+    <button class="search" onclick={() => (ui.search = true)} aria-label="Find a CVE or vendor" aria-keyshortcuts="Control+K Meta+K">
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.75" /><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" /></svg>
-      <span>Search CVEs and vendors</span><kbd>{isMac ? '⌘' : 'Ctrl'} K</kbd>
+      <span>Find a CVE or vendor</span><kbd>{isMac ? '⌘' : 'Ctrl'} K</kbd>
     </button>
     <button class="theme" onclick={() => (theme = dark ? 'light' : 'dark')} aria-label="Switch to {dark ? 'light' : 'dark'} theme" title="Switch theme">
       {#if dark}<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor" /><g stroke="currentColor" stroke-width="1.5">{#each [0, 45, 90, 135, 180, 225, 270, 315] as a (a)}<line x1="8" y1="0.8" x2="8" y2="2.8" transform="rotate({a} 8 8)" />{/each}</g></svg>
@@ -129,6 +134,7 @@
 
 <main class="wrap" id="main" tabindex="-1" bind:this={main}>
   {#if data}
+    <SourceStatus meta={data.meta} />
     {#key ui.route}
       <div class="view">
         {#if ui.route === 'overview'}<Overview months={data.months} kev={data.kev} vendors={data.vendors} {partial} {today} {openCve} {go} />
@@ -178,7 +184,7 @@
     </div>
   </div>
   <Search bind:open={ui.search} kev={data.kev} vendors={data.vendors.rows} oncve={openCve} onvendor={openVendor} />
-  <Sheet bind:id={ui.cve} {kevById} {today} local={watchRow} cweNames={data.cwe.names ?? {}} />
+  <Sheet epssDate={scoreDate(data.meta.epss)} nvdDate={data.meta.nvd.slice(0, 10)} bind:id={ui.cve} {kevById} {today} local={watchRow} cweNames={data.cwe.names ?? {}} />
 {/if}
 
 <style>
@@ -189,6 +195,7 @@
   .masthead { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-top: 1.25rem; padding-bottom: 1.25rem; }
   h1 { font: 400 clamp(1.6rem, 3vw, 1.85rem)/1 var(--display); letter-spacing: -0.045em; }
   h1 a { text-decoration: none; display: inline-block; padding: 0.2rem 0; }
+  @media (max-width: 360px) { h1 { font-size: 1.4rem; } }
   .co { font-weight: 800; }
   .tools { display: flex; gap: 0.5rem; }
   .search, .theme {
@@ -203,7 +210,7 @@
   .nav { position: sticky; top: 0; z-index: 20; background: var(--chrome); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
   .nav .wrap { display: flex; gap: 0.25rem 2rem; overflow-x: auto; scrollbar-width: none; }
   /* every tab stays visible on a phone; two wrapped rows are too tall to pin */
-  @media (max-width: 640px) { .nav { position: static; } .nav .wrap { flex-wrap: wrap; gap: 0 1.1rem; } .nav a { padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
+  @media (max-width: 640px) { .nav { position: static; } .nav .wrap { flex-wrap: wrap; gap: 0 1.1rem; } .nav .wrap a { padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
   .nav a:focus-visible { outline-offset: -2px; } /* the scrolling row would clip an outside ring */
   .skip { position: absolute; left: 1rem; top: -100px; z-index: 30; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-weight: 700; }
   .skip:focus { top: 0.5rem; }

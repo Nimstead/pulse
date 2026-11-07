@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scaleLinear } from 'd3-scale'
   import { line } from 'd3-shape'
+  import { chartKeyIndex } from '../lib/chart-key'
   import { num } from '../lib/data'
 
   type L = { key: string; label: string; values: (number | null)[]; tone: 'focus' | 'prior' | 'faint'; color?: string }
@@ -10,6 +11,7 @@
 
   let width = $state(600)
   let hover = $state(-1)
+  const instructionsId = $props.id()
   const ml = 48, mr = 64, mt = 12, mb = 26
   const iw = $derived(Math.max(10, width - ml - mr))
   const ih = $derived(height - mt - mb)
@@ -33,9 +35,10 @@
     hover = i >= 0 && i < labels.length ? i : -1
   }
   function key(e: KeyboardEvent) {
-    if (e.key === 'ArrowRight') hover = Math.min(labels.length - 1, (hover < 0 ? labels.length - 2 : hover) + 1)
-    else if (e.key === 'ArrowLeft') hover = Math.max(0, (hover < 0 ? labels.length : hover) - 1)
-    else return
+    if (e.key === 'Escape') { hover = -1; e.preventDefault(); return }
+    const next = chartKeyIndex(hover, labels.length, e.key)
+    if (next == null) return
+    hover = next
     e.preventDefault()
   }
   const tipLeft = $derived(hover < 0 ? 0 : Math.min(Math.max(x(hover), 90), width - 90))
@@ -47,7 +50,7 @@
 <div class="lines" bind:clientWidth={width} style:height="{height}px">
   <!-- a focusable chart: arrow keys step through the data and the tooltip is announced -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-  <svg {width} {height} role="img" aria-label={label} tabindex="0" onpointermove={move} onpointerleave={() => (hover = -1)} onkeydown={key} onblur={() => (hover = -1)}>
+  <svg {width} {height} role="img" aria-label={label} aria-describedby={instructionsId} tabindex="0" onpointermove={move} onpointerleave={() => (hover = -1)} onkeydown={key} onblur={() => (hover = -1)}>
     {#each y.ticks(4) as t (t)}
       <line x1={ml} x2={ml + iw} y1={y(t)} y2={y(t)} class="grid" class:base={t === 0} />
       <text x={ml - 8} y={y(t)} dy="0.32em" text-anchor="end" class="axis">{fmtAxis(t)}</text>
@@ -68,6 +71,7 @@
       <text x={x(e.i) + 8} y={e.y} dy="0.32em" class="end {e.l.tone}" style:fill={e.l.color}>{e.l.label}</text>
     {/each}
   </svg>
+  <p class="sr-only" id={instructionsId}>Use Left and Right Arrow to step through the data, Home and End to jump to the first and last value. Escape clears the selected value.</p>
   {#if hover >= 0 && tipLines.length}
     <div class="tip" style:left="{tipLeft}px" data-no-export aria-hidden="true">
       <div class="t">{labels[hover]}</div>

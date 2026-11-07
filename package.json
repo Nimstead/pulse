@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "data": "python etl/build.py",
-    "test": "python -I etl/test_build.py && node src/lib/watchlist.test.ts && node src/lib/export.test.ts && node src/lib/period.test.ts && node src/lib/routes.test.ts",
+    "test": "python -I etl/test_build.py && node --test src/lib/*.test.ts scripts/indexnow.test.mjs",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "dev": "vite",
     "build": "vite build && node scripts/prerender.mjs && node --test scripts/seo.test.mjs",

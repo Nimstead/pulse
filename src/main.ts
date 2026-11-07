@@ -16,9 +16,9 @@ Promise.all([
   load<Data['epss']>('epss.json'), load<Data['vendors']>('vendors.json'), load<Data['cwe']>('cwe.json'), load<Data['recent']>('recent.json'),
 ]).then(([m, kev, meta, epss, vendors, cwe, recent]) => {
   const months = m.filter((x) => x.ym >= '1999-01')
-  const { route, params } = readLocation(location.pathname, location.hash)
+  const { route, params, windowDays, vendorSort, cweSort } = readLocation(location.pathname, location.hash)
   const [from, to] = readPeriod(months.map((m) => m.ym), params.get('from'), params.get('to'))
-  Object.assign(ui, { route, from, to, vendor: params.get('vendor') ?? '', cve: params.get('cve') ?? '' })
+  Object.assign(ui, { route, from, to, windowDays, vendorSort, cweSort, vendor: params.get('vendor') ?? '', cve: params.get('cve') ?? '' })
   feed.generated = meta.generated.slice(0, 10); feed.months = months.map((m) => m.ym)
   // Keep the readable daily report until the interactive data is ready.
   target.replaceChildren()

@@ -1,6 +1,6 @@
 // Self-check for the watchlist logic: node src/lib/watchlist.test.ts
 import assert from 'node:assert/strict'
-import { parseIds, analyse, MAX_IDS, type IdxRow } from './watchlist.ts'
+import { parseIds, analyse, filterItems, MAX_IDS, type IdxRow } from './watchlist.ts'
 import type { Kev } from './data'
 
 const p = parseIds('Found cve-2024-3400 and CVE-2021-44228, again CVE-2024-3400; "CVE-2024-123456",XCVE-2020-0001 CVE-20-1')
@@ -17,4 +17,9 @@ const a = analyse(['CVE-1-0003', 'CVE-1-0002', 'CVE-1-0001', 'CVE-1-0004', 'CVE-
 assert.deepEqual(a.items.map((i) => [i.row[0], i.tier]), [['CVE-1-0009', 0], ['CVE-1-0005', 1], ['CVE-1-0001', 2], ['CVE-1-0002', 3], ['CVE-1-0003', 4]])
 assert.deepEqual(a.rejected, ['CVE-1-0004'])
 assert.deepEqual(a.missing, ['CVE-1-7777'], 'KEV-only CVE-1-0009 is kept, not missing')
+assert.deepEqual(filterItems(a.items, 'CVE-1-0002').map((i) => i.row[0]), ['CVE-1-0002'])
+assert.deepEqual(filterItems(a.items, 'AcMe RoCkEt').map((i) => i.row[0]), ['CVE-1-0005', 'CVE-1-0001', 'CVE-1-0002', 'CVE-1-0003'])
+assert.deepEqual(filterItems(a.items, 'acme rocket', 3).map((i) => i.row[0]), ['CVE-1-0002'])
+assert.deepEqual(filterItems(a.items, '', 0).map((i) => i.row[0]), ['CVE-1-0009'])
+assert.deepEqual(filterItems(a.items, '', null).map((i) => i.row[0]), a.items.map((i) => i.row[0]))
 console.log('ok')

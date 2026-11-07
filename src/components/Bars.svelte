@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { Spring } from 'svelte/motion'
+  import { untrack } from 'svelte'
+  import { Spring, prefersReducedMotion } from 'svelte/motion'
   import { scaleLinear } from 'd3-scale'
+  import { chartKeyIndex } from '../lib/chart-key'
   import { num } from '../lib/data'
 
   type Series = { key: string; label: string; color: string; values: number[] }
@@ -20,6 +22,7 @@
   let hover = $state(-1)
   const ml = 48, mr = 4, mt = 10, mb = 26
   const uid = Math.random().toString(36).slice(2, 8)
+  const instructionsId = $props.id()
 
   const totals = $derived(labels.map((_, i) => series.reduce((a, s) => a + (s.values[i] || 0), 0)))
   const value = (s: Series, i: number) => (normalize ? (totals[i] ? (s.values[i] || 0) / totals[i] : 0) : s.values[i] || 0)
@@ -36,7 +39,8 @@
     return a >= 0 && b >= a ? { a, b } : null
   })
   // critically damped: the axis glides to a new range and never overshoots
-  const yMax = Spring.of(() => max, { stiffness: 0.14, damping: 0.95 })
+  const yMax = new Spring(untrack(() => max), { stiffness: 0.14, damping: 0.95 })
+  $effect(() => { yMax.set(max, { instant: prefersReducedMotion.current }) })
 
   const iw = $derived(Math.max(10, width - ml - mr))
   const ih = $derived(height - mt - mb)
@@ -45,14 +49,23 @@
   const y = $derived(scaleLinear().domain([0, Math.max(yMax.current, 1e-9)]).range([ih, 0]).clamp(true))
   const ticks = $derived(scaleLinear().domain([0, max]).nice().ticks(Math.max(1, Math.min(4, Math.floor(ih / 26)))).filter((t) => t <= yMax.current * 1.001 && (normalize || axis || Number.isInteger(t))))
   const isEmpty = $derived(!!empty && totals.every((t) => !t))
-  // keep a label only when it clears the last one shown, so thinning never depends on where the period starts
+  // Thin labels by their rendered width, including on dense charts; pin edge labels inside the plot.
   const shown = $derived.by(() => {
-    const out = new Set<number>()
-    let lastX = -Infinity
+    const out = new Map<number, 'start' | 'middle' | 'end'>()
+    let lastRight = -Infinity
     labels.forEach((l, i) => {
       const t = tick(l, i)
       if (!t) return
-      if (bw <= 12 || i * bw - lastX >= t.length * 6.6 + 10) { out.add(i); lastX = i * bw }
+      const textWidth = t.length * 6.6
+      let anchor: 'start' | 'middle' | 'end' = bw > 24 ? 'middle' : 'start'
+      let x = i * bw + (anchor === 'middle' ? bw / 2 : 0)
+      let left = x - (anchor === 'middle' ? textWidth / 2 : 0)
+      let right = left + textWidth
+      if (left < 0) { anchor = 'start'; x = 0; left = 0; right = textWidth }
+      if (right > iw) { anchor = 'end'; x = iw; left = iw - textWidth; right = iw }
+      if (left < 0 || left - lastRight < 10) return
+      out.set(i, anchor)
+      lastRight = right
     })
     return out
   })
@@ -78,9 +91,10 @@
     hover = i >= 0 && i < labels.length ? i : -1
   }
   function key(e: KeyboardEvent) {
-    if (e.key === 'ArrowRight') hover = Math.min(labels.length - 1, (hover < 0 ? labels.length - 2 : hover) + 1)
-    else if (e.key === 'ArrowLeft') hover = Math.max(0, (hover < 0 ? labels.length : hover) - 1)
-    else return
+    if (e.key === 'Escape') { hover = -1; e.preventDefault(); return }
+    const next = chartKeyIndex(hover, labels.length, e.key)
+    if (next == null) return
+    hover = next
     e.preventDefault()
   }
   const shownValue = (s: Series, i: number) => (normalize ? `${Math.round(value(s, i) * 100)}%` : format(s.values[i] || 0))
@@ -93,7 +107,7 @@
   <!-- a focusable chart: arrow keys step through the data and the tooltip is announced -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
   <svg
-    {width} {height} role="img" aria-label={label} tabindex="0"
+    {width} {height} role="img" aria-label={label} aria-describedby={instructionsId} tabindex="0"
     onpointermove={move} onpointerleave={() => (hover = -1)} onkeydown={key} onblur={() => (hover = -1)}
   >
     <defs>
@@ -139,15 +153,17 @@
         {/if}
       {/each}
       {#each labels as l, i (l)}
-        {@const t = shown.has(i) ? tick(l, i) : null}
+        {@const anchor = shown.get(i)}
+        {@const t = anchor ? tick(l, i) : null}
         {#if t}
-          {@const cx = bw > 24 ? ml + i * bw + bw / 2 : ml + i * bw}
-          <line x1={cx} x2={cx} y1={ih} y2={ih + 4} class="grid base" />
-          <text x={cx} y={ih + 17} class="axis" text-anchor={bw > 24 ? 'middle' : 'start'}>{t}</text>
+          {@const cx = anchor === 'end' ? width - mr : ml + i * bw + (anchor === 'middle' ? bw / 2 : 0)}
+          <line x1={ml + i * bw + bw / 2} x2={ml + i * bw + bw / 2} y1={ih} y2={ih + 4} class="grid base" />
+          <text x={cx} y={ih + 17} class="axis" text-anchor={anchor}>{t}</text>
         {/if}
       {/each}
     </g>
   </svg>
+  <p class="sr-only" id={instructionsId}>Use Left and Right Arrow to step through the data, Home and End to jump to the first and last value. Escape clears the selected value.</p>
   {#if isEmpty}<p class="empty">{empty}</p>{/if}
   {#if hover >= 0 && !isEmpty}
     <div class="tip" style:left="{tipLeft}px" data-no-export aria-hidden="true">

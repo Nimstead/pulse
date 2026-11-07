@@ -142,10 +142,10 @@
 </script>
 
 <section class="briefing" aria-label="Start with Pulse">
-  <div class="briefing-intro"><p>Public intelligence. A clearer priority.</p><span>A daily view of published vulnerabilities, confirmed exploitation and what deserves a closer look.</span></div>
+  <div class="briefing-intro"><p>From public signals to your next decision.</p><span>Triage your CVEs, prepare a team handover, or explore the evidence behind vulnerability trends.</span></div>
   <div class="briefing-actions">
-    <button onclick={() => go('week')}>Read this week's brief<span>New listings and approaching due dates</span></button>
-    <button onclick={() => go('watchlist')}>Check your CVEs<span>Your list stays in your browser</span></button>
+    <a href="/week/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('week') }}>Prepare a handover<span>New KEV entries and federal deadlines</span></a>
+    <a href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Triage your CVEs<span>KEV, EPSS and severity. Private by design.</span></a>
   </div>
 </section>
 
@@ -154,25 +154,28 @@
   <div>
   <h2 class="headline">
     <!-- nowrap pairs keep each footnote button on the line of the word it annotates -->
-    {#if trend != null}New CVEs: {yearWord(trend).replace(/ \S+$/, '')} <span class="nw">{yearWord(trend).split(' ').at(-1)}.<Fn n={1} /></span>
-    {:else}{num(N)} CVEs published {monthShort(sel[0].ym)} to <span class="nw">{monthShort(sel.at(-1)!.ym)}.<Fn n={1} /></span>{/if}
+    {#if !selFull.length}This month is still in progress.
+    {:else if trend != null}New CVEs: {yearWord(trend).replace(/ \S+$/, '')} <span class="nw">{yearWord(trend).split(' ').at(-1)}.<Fn n={1} /></span>
+    {:else}{num(N)} CVEs published {monthShort(selFull[0].ym)} to <span class="nw">{monthShort(selFull.at(-1)!.ym)}.<Fn n={1} /></span>{/if}
     {#if trend != null && kevTrend != null}New <mark>KEV listings</mark>: {yearWord(kevTrend).replace(/ in a year$/, '')}.<Fn n={2} />
     {:else if share}Since {monthShort(sel[0].ym)}, about 1 in {num(1 / share)} is confirmed <span class="nw"><mark>exploited</mark>.<Fn n={2} /></span>{/if}
   </h2>
+  {#if !selFull.length}<p class="basis">{num(sum(sel, (m) => m.n))} CVEs published so far in {monthLong(sel[0].ym)}. Monthly charts include partial counts; year-on-year comparisons need complete months.</p>{/if}
   {#if trend != null}{@const w = selFull.slice(-12)}<p class="basis">Both compare {monthShort(w[0].ym)} – {monthShort(w.at(-1)!.ym)} with the 12 months before: CVEs by publication month, exploited by the month CISA listed them in KEV.</p>{/if}
   <button class="copy" onclick={copyBand} data-no-export title="Copy the headline, the three figures and Figure 1 as one PNG for slides">{bandStatus || 'Copy summary for slides'}</button>
+  <span class="sr-only" role="status" data-no-export>{bandStatus === '…' ? 'Copying summary…' : bandStatus}</span>
   </div>
   <dl class="answers">
     <div>
       {#if why}
         <dt>Why</dt>
-        <dd>The rise is broad. Comparing {thisY} so far with all of {lastY}, {growth[0].name}, {growth[1].name} and {growth[2].name} grew fastest but explain only <b>{pct(why.share)}</b> of the increase. The other {pct(1 - why.share)} is spread across thousands of vendors.<Fn n={6} />
-          <span class="split" role="img" aria-label="Share of the increase: top three vendors {pct(why.share)}, all other vendors {pct(1 - why.share)}">
+        <dd>The rise is broad. Comparing {thisY} so far with all of {lastY}, {growth[0].name}, {growth[1].name} and {growth[2].name} had the largest absolute increases and account for <b>{pct(why.share)}</b> of the increase. {#if why.share <= 1}The remaining {pct(1 - why.share)} comes from other vendors.{:else}Declines elsewhere offset part of their increase.{/if}<Fn n={6} />
+          {#if why.share <= 1}<span class="split" role="img" aria-label="Share of the increase: top three vendors {pct(why.share)}, all other vendors {pct(1 - why.share)}">
             <i style:width="{why.share * 100}%"><b>Top 3 · {pct(why.share)}</b></i><i class="rest" style:width="{(1 - why.share) * 100}%"><b>Everyone else · {pct(1 - why.share)}</b></i>
-          </span></dd>
+          </span>{/if}</dd>
       {:else}
         <dt>Period</dt>
-        <dd><b>{num(N)}</b> CVEs published {monthShort(sel[0].ym)} to {monthShort(sel.at(-1)!.ym)}{#if trend != null}; the trend compares the latest 12 months with the 12 before{/if}.</dd>
+        <dd><b>{num(N)}</b> CVEs in the complete months of the selected period{#if trend != null}; the trend compares the latest 12 months with the 12 before{/if}.</dd>
       {/if}
     </div>
     <div>
@@ -181,12 +184,13 @@
     </div>
     <div>
       <dt>So what</dt>
-      <dd>KEV confirms exploitation; EPSS estimates likelihood. Use both to prioritise<Fn n={5} /> alongside exposure and business impact. Absence from KEV does not mean safe. <button class="linklike" onclick={() => go('watchlist')}>Check your own CVEs</button></dd>
+      <dd>KEV confirms exploitation; EPSS estimates likelihood. Use both to prioritise<Fn n={5} /> alongside exposure and business impact. Absence from KEV does not mean safe. <a class="linklike" href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Check your own CVEs</a></dd>
     </div>
   </dl>
 </section>
 <div class="view-period" data-no-export><Period {months} compact /></div>
 
+{#if selFull.length}
 <section class="pulse" aria-label="Vital signs for {monthLong(latest.ym)}">
   <div class="sign">
     <h3>CVEs published · {monthLong(latest.ym)}<Fn n={1} /></h3>
@@ -207,6 +211,7 @@
     {@render spark(traces[2], false)}
   </div>
 </section>
+{/if}
 {#if indexed}
   {@const cUp = Math.round(indexed.cves.at(-1)! - 100)}
   {@const kUp = Math.round(indexed.kev.at(-1)! - 100)}
@@ -279,7 +284,7 @@
     <Bars label="Distribution of days from publication to KEV listing" labels={[...LAG_BINS]} height={280}
       series={[{ key: 'fast', label: 'Within 30 days', color: 'var(--kev)', values: lagCounts.map((v, i) => (i < 3 ? v : 0)) }, { key: 'slow', label: 'Later', color: 'var(--kev-soft)', values: lagCounts.map((v, i) => (i < 3 ? 0 : v)) }]} tick={(l) => l} empty={NO_KEV} />
     {#snippet notes()}
-      {#if lags.length}{pct(zeroDay)} listed on or before publication day · {pct(within30)} within 30 days · <button class="linklike" onclick={() => go('exploitation')}>Exploitation detail</button>{/if}
+      {#if lags.length}{pct(zeroDay)} listed on or before publication day · {pct(within30)} within 30 days · <a class="linklike" href="/exploitation/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('exploitation') }}>Exploitation detail</a>{/if}
     {/snippet}
   </Figure>
 </div>
@@ -297,8 +302,8 @@
     {/each}
   </ul>
   <div class="ctas">
-    <button class="cta" onclick={() => go('week')}>Everything that changed this week</button>
-    <button class="cta alt" onclick={() => go('watchlist')}>Check your own CVEs</button>
+    <a class="cta" href="/week/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('week') }}>Everything that changed this week</a>
+    <a class="cta alt" href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Check your own CVEs</a>
   </div>
 </section>
 
@@ -307,8 +312,8 @@
   .briefing-intro p { margin: 0 0 0.35rem; font: 700 1.125rem/1.2 var(--sans); letter-spacing: -0.02em; }
   .briefing-intro > span { display: block; max-width: 50ch; font-size: 0.875rem; color: var(--ink-3); }
   .briefing-actions { display: flex; gap: 1.5rem; }
-  .briefing-actions button { text-align: left; padding: 0.6rem 0 0.6rem 1rem; border: 0; border-left: 2px solid var(--ink); color: var(--ink); background: transparent; font: 700 0.9375rem/1.3 var(--sans); cursor: pointer; }
-  .briefing-actions button:hover { background: var(--shade); }
+  .briefing-actions a { text-decoration: none; text-align: left; padding: 0.6rem 0 0.6rem 1rem; border: 0; border-left: 2px solid var(--ink); color: var(--ink); background: transparent; font: 700 0.9375rem/1.3 var(--sans); cursor: pointer; }
+  .briefing-actions a:hover { background: var(--shade); }
   .briefing-actions span { display: block; margin-top: 0.35rem; max-width: 23ch; color: var(--ink-3); font-size: 0.8125rem; font-weight: 400; }
   @media (max-width: 900px) { .briefing { grid-template-columns: minmax(0, 1fr); gap: 1rem; } .briefing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; } }
   .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.75rem, 3vw, 2.75rem) 0 1.75rem; }
@@ -376,10 +381,10 @@
   @media (max-width: 640px) { .latest ul { grid-template-columns: 8.5rem minmax(0, 1fr); } .latest li > :nth-child(n + 3) { grid-column: 2; } }
   .latest .v { font-weight: 600; }
   .latest .d { color: var(--ink-3); font-size: 0.875rem; }
-  .cta { margin-top: 1.25rem; font: 700 0.9375rem/1 var(--sans); padding: 0.95rem 1.35rem; background: var(--ink); color: var(--paper); border: 2px solid var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }
+  .cta { text-decoration: none; margin-top: 1.25rem; font: 700 0.9375rem/1 var(--sans); padding: 0.95rem 1.35rem; background: var(--ink); color: var(--paper); border: 2px solid var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }
   .cta:hover { background: var(--paper); color: var(--ink); }
   .ctas { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
-  .ctas .cta { margin-top: 0; }
+  .ctas .cta { text-decoration: none; margin-top: 0; }
   .cta.alt { background: var(--paper); color: var(--ink); }
   .cta.alt:hover { background: var(--ink); color: var(--paper); }
   @media (max-width: 1100px) {

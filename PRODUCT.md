@@ -12,9 +12,10 @@ Static site + nightly ETL (user choice). Python standard-library ETL writes prec
 
 ## Users
 
-- **Leadership (primary):** CISOs, heads of security, risk owners. They need the trend story in seconds — is CVE volume rising, how much gets exploited, how fast — often to drop into a deck or board update.
-- **Vulnerability management teams:** prioritisation — what is exploited, EPSS likelihood, which vendors and weakness types dominate.
-- **SOC analysts:** what changed this week — new KEV listings, CISA due dates, ransomware-linked entries, fresh criticals.
+- **Leadership:** CISOs, heads of security, risk owners. They need the trend story in seconds — is CVE volume rising, how much gets exploited, how fast — often to drop into a deck or board update.
+- **Vulnerability management teams (primary):** turn a scanner or ticket CVE list into a defensible triage queue, with exploitation evidence, score dates and private local analysis.
+- **SOC analysts (primary):** prepare a shift handover from new KEV listings, federal deadline changes, ransomware-linked entries and elevated EPSS. Public deadlines do not indicate whether the organisation has remediated a CVE.
+- **Cyber community:** inspect the evidence, compare trends and reuse the underlying data with its provenance.
 
 ## Brand
 

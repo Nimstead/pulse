@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte'
   import { titleCase, num, type Kev, type Ranked } from '../lib/data'
 
   let { open = $bindable(), kev, vendors, oncve, onvendor }: {
@@ -40,17 +41,22 @@
     open = false
     h.kind === 'cve' ? oncve(h.key) : onvendor(h.key)
   }
-  function keys(e: KeyboardEvent) {
+  async function keys(e: KeyboardEvent) {
+    if (!hits.length) return
     if (e.key === 'ArrowDown') { active = Math.min(hits.length - 1, active + 1); e.preventDefault() }
     else if (e.key === 'ArrowUp') { active = Math.max(0, active - 1); e.preventDefault() }
-    else if (e.key === 'Enter') { choose(hits[active]); e.preventDefault() }
+    else if (e.key === 'Enter') { choose(hits[active]); e.preventDefault(); return }
+    else return
+    await tick()
+    document.getElementById(`hit-${active}`)?.scrollIntoView({ block: 'nearest' })
   }
 </script>
 
 <dialog bind:this={dlg} onclose={() => (open = false)} onclick={(e) => { if (e.target === dlg) open = false }} aria-label="Search">
   <div class="box">
-    <input bind:this={input} bind:value={q} oninput={() => (active = 0)} onkeydown={keys} placeholder="CVE ID, or a KEV vendor, product or name"
-      aria-label="Search CVEs and vendors" role="combobox" aria-expanded="true" aria-controls="search-hits" aria-activedescendant={hits.length ? `hit-${active}` : undefined} autocomplete="off" spellcheck="false" />
+    <input bind:this={input} bind:value={q} oninput={() => (active = 0)} onkeydown={keys} placeholder="CVE-2024-3400, Microsoft…" aria-describedby="search-scope"
+      aria-label="Find a CVE or vendor" role="combobox" aria-expanded="true" aria-controls="search-hits" aria-activedescendant={hits.length ? `hit-${active}` : undefined} autocomplete="off" spellcheck="false" />
+    <p id="search-scope" class="scope">Open any full CVE ID. Search names across KEV entries and tracked vendors.</p>
     <ul id="search-hits" role="listbox">
       {#each hits as h, i (h.kind + h.key)}
         <!-- svelte-ignore a11y_click_events_have_key_events (keys are handled on the combobox input) -->
@@ -62,6 +68,7 @@
         <li class="empty">No KEV entry or tracked vendor matches. Enter a full CVE ID to open any record.</li>
       {/each}
     </ul>
+    <span class="sr-only" role="status">{hits.length ? `${hits.length} suggestions` : 'No matches. Try a full CVE ID.'}</span>
     <div class="foot"><kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>Enter</kbd> to open · <kbd>Esc</kbd> to close</div>
   </div>
 </dialog>
@@ -83,6 +90,7 @@
   .t { font-weight: 700; }
   .s { font-size: 0.8rem; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .empty { color: var(--ink-3); cursor: default; }
+  .scope { margin: 0; padding: 0.7rem 1.2rem 0.35rem; color: var(--ink-3); font-size: 0.8125rem; }
   .foot { border-top: 1px solid var(--rule); padding: 0.5rem 1.1rem; font-size: 0.75rem; color: var(--ink-3); }
   kbd { font: 500 0.6875rem var(--mono); border: 1px solid var(--rule); padding: 0 0.3rem; }
 </style>

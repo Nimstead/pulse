@@ -1,7 +1,7 @@
 import { dateShort, monthShort } from './data'
 
 /** App-wide UI state, mirrored to the URL hash so any view and period is shareable. */
-export const ui = $state({ route: 'overview', from: 0, to: 0, vendor: '', cve: '', search: false })
+export const ui = $state({ route: 'overview', from: 0, to: 0, vendor: '', cve: '', search: false, windowDays: 7, vendorSort: 'kev', cweSort: 'kev' })
 
 /** Set once the data loads; read only when a figure is exported. */
 export const feed = { generated: '', months: [] as string[] }
