@@ -37,7 +37,7 @@
   .rows { font-size: 0.875rem; container-type: inline-size; } /* columns follow the list's own width, so a narrow drill-down panel stays readable */
   .head, .row { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 6.5rem 6.5rem 70px; gap: 0.75rem; align-items: center; }
   .head { font: 600 0.6875rem/1.2 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding-bottom: 0.55rem; border-bottom: 2px solid var(--rule-strong); }
-  .head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .head span { overflow-wrap: anywhere; text-wrap: balance; }
   .row { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--rule); padding: 0.6rem 0; animation: in 500ms var(--ease-out) both; animation-delay: var(--d); }
   .row.pick { position: relative; cursor: pointer; transition: background-color 120ms; }
   .row.pick:hover, .row.sel { background: var(--shade); }
@@ -51,7 +51,7 @@
   .row.sel .rank { color: var(--ink); font-weight: 800; }
   .rank { color: var(--ink-3); font-size: 0.8125rem; text-align: right; }
   .name { min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
-  .label { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .label { font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
   .sub { font-size: 0.75rem; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar { position: relative; height: 4px; background: var(--shade); overflow: hidden; }
   .bar i, .bar b { position: absolute; left: 0; top: 0; bottom: 0; }
@@ -65,7 +65,8 @@
   .sp path { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-linejoin: round; }
   @keyframes in { from { opacity: 0; transform: translateY(4px); } }
   @container (max-width: 34rem) {
-    .head, .row { grid-template-columns: 1.5rem minmax(0, 1fr) 4rem 4.5rem; }
+    .head, .row { grid-template-columns: 1.25rem minmax(0, 1fr) 4rem 4.5rem; gap: 0.5rem; }
+    .head { align-items: end; }
     .sp { display: none; }
   }
 </style>

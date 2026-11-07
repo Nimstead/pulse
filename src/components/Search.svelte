@@ -54,8 +54,11 @@
 
 <dialog bind:this={dlg} onclose={() => (open = false)} onclick={(e) => { if (e.target === dlg) open = false }} aria-label="Search">
   <div class="box">
-    <input bind:this={input} bind:value={q} oninput={() => (active = 0)} onkeydown={keys} placeholder="CVE-2024-3400, Microsoft…" aria-describedby="search-scope"
-      aria-label="Find a CVE or vendor" role="combobox" aria-expanded="true" aria-controls="search-hits" aria-activedescendant={hits.length ? `hit-${active}` : undefined} autocomplete="off" spellcheck="false" />
+    <div class="search-field">
+      <input bind:this={input} bind:value={q} oninput={() => (active = 0)} onkeydown={keys} placeholder="CVE-2024-3400, Microsoft…" aria-describedby="search-scope"
+        aria-label="Find a CVE or vendor" role="combobox" aria-expanded="true" aria-controls="search-hits" aria-activedescendant={hits.length ? `hit-${active}` : undefined} autocomplete="off" spellcheck="false" />
+      <button class="close" onclick={() => (open = false)} aria-label="Close search"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" /></svg></button>
+    </div>
     <p id="search-scope" class="scope">Open any full CVE ID. Search names across KEV entries and tracked vendors.</p>
     <ul id="search-hits" role="listbox">
       {#each hits as h, i (h.kind + h.key)}
@@ -75,22 +78,27 @@
 
 <style>
   dialog {
-    margin: 12vh auto auto; width: min(640px, calc(100vw - 32px)); padding: 0; border: 2px solid var(--rule-strong);
+    margin: 12dvh auto auto; width: min(640px, calc(100vw - 32px)); max-height: calc(88dvh - 1rem); padding: 0; border: 2px solid var(--rule-strong);
     background: var(--paper); color: var(--ink); box-shadow: 0 30px 80px rgb(0 0 0 / 0.28);
     transform-origin: 50% 0; transition: transform 260ms var(--ease-out), opacity 180ms;
   }
   @starting-style { dialog[open] { transform: scale(0.96) translateY(-6px); opacity: 0; } }
   dialog::backdrop { background: rgb(17 17 17 / 0.5); }
-  input { width: 100%; border: 0; border-bottom: 1px solid var(--rule); background: transparent; padding: 1.15rem 1.2rem; font: 500 1.125rem var(--sans); color: var(--ink); outline: none; }
+  .box { display: flex; flex-direction: column; max-height: inherit; }
+  .search-field { display: flex; align-items: center; flex-shrink: 0; border-bottom: 1px solid var(--rule); }
+  input { width: 100%; min-width: 0; border: 0; background: transparent; padding: 1.15rem 1.2rem; font: 500 1.125rem var(--sans); color: var(--ink); outline: none; }
   input:focus-visible { box-shadow: inset 0 -2px var(--ink); }
-  ul { list-style: none; margin: 0; padding: 0.35rem; max-height: 50vh; overflow-y: auto; overscroll-behavior: contain; }
+  .close { display: grid; place-items: center; flex-shrink: 0; width: 2.75rem; height: 2.75rem; margin-right: 0.6rem; padding: 0; border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }
+  .close:hover { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .close:active { transform: translateY(1px); }
+  ul { list-style: none; margin: 0; padding: 0.35rem; min-height: 0; max-height: 50dvh; overflow-y: auto; overscroll-behavior: contain; }
   li { display: grid; padding: 0.6rem 0.8rem; cursor: pointer; }
   li.active { background: var(--ink); color: var(--paper); }
   li.active .s { color: color-mix(in srgb, var(--paper) 75%, var(--ink)); }
   .t { font-weight: 700; }
   .s { font-size: 0.8rem; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .empty { color: var(--ink-3); cursor: default; }
-  .scope { margin: 0; padding: 0.7rem 1.2rem 0.35rem; color: var(--ink-3); font-size: 0.8125rem; }
-  .foot { border-top: 1px solid var(--rule); padding: 0.5rem 1.1rem; font-size: 0.75rem; color: var(--ink-3); }
+  .scope { margin: 0; padding: 0.7rem 1.2rem 0.35rem; color: var(--ink-3); font-size: 0.8125rem; flex-shrink: 0; }
+  .foot { border-top: 1px solid var(--rule); padding: 0.5rem 1.1rem; font-size: 0.75rem; color: var(--ink-3); flex-shrink: 0; }
   kbd { font: 500 0.6875rem var(--mono); border: 1px solid var(--rule); padding: 0 0.3rem; }
 </style>

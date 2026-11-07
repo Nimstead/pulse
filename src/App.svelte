@@ -211,7 +211,7 @@
   .nav { position: sticky; top: 0; z-index: 20; background: var(--chrome); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
   .nav .wrap { display: flex; gap: 0.25rem 2rem; overflow-x: auto; scrollbar-width: none; }
   /* every tab stays visible on a phone; two wrapped rows are too tall to pin */
-  @media (max-width: 640px) { .nav { position: static; } .nav .wrap { flex-wrap: wrap; gap: 0 1.1rem; } .nav .wrap a { padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
+  @media (max-width: 640px) { .nav { position: static; } .nav .wrap { flex-wrap: wrap; gap: 0 1.1rem; } .nav .wrap a { display: flex; align-items: center; min-height: 2.75rem; padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
   .nav a:focus-visible { outline-offset: -2px; } /* the scrolling row would clip an outside ring */
   .skip { position: absolute; left: 1rem; top: -100px; z-index: 30; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-weight: 700; }
   .skip:focus { top: 0.5rem; }

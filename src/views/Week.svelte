@@ -150,9 +150,10 @@
 
 <style>
   .report-controls { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 0.75rem 1.5rem; margin-bottom: 1.5rem; }
-  .toggle { display: inline-flex; border: 2px solid var(--ink); overflow: hidden; margin-bottom: 0; }
+  .toggle { display: inline-flex; border: 2px solid var(--ink); margin-bottom: 0; }
   .toggle button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.55rem 0.95rem; min-height: 2.75rem; font: 700 0.8125rem var(--sans); color: var(--ink-2); cursor: pointer; }
   .toggle button:first-child { border-left: 0; }
+  .toggle button:hover { background: var(--shade); color: var(--ink); }
   .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
   .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1rem, 3vw, 3rem); margin-bottom: 1.5rem; }
   .tiles.no-deadlines { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -188,4 +189,5 @@
   .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 720px) { .tiles, .tiles.no-deadlines { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .toggle { width: 100%; } .toggle button { flex: 1; padding-inline: 0.5rem; } }
 </style>

@@ -43,4 +43,10 @@
   .presets button:first-child { border-left: 0; }
   .presets button:active { background: var(--shade); }
   .presets button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+  @media (max-width: 560px) {
+    .bar { gap: 0.5rem; }
+    .bar > .kicker { flex-basis: 100%; }
+    .presets { width: 100%; margin-left: 0; }
+    .presets button { flex: 1; }
+  }
 </style>
