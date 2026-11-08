@@ -12,13 +12,14 @@
   import Bars from '../components/Bars.svelte'
   import { download, downloadCsv } from '../lib/export'
   import { inLastDays, dueWithinDays } from '../lib/week'
-  import { num, pct, epssPct, dateLong, dateShort, titleCase, kvp, daysBetween, addDays, vp, SEV_COLOR, type Kev } from '../lib/data'
+  import { num, epssPct, dateLong, dateShort, titleCase, kvp, daysBetween, addDays, vp, SEV_COLOR, type Kev } from '../lib/data'
 
   let { kev, recent, today, openCve }: { kev: Kev[]; recent: Recent; today: string; openCve: (id: string) => void } = $props()
 
   const windowDays = $derived(ui.windowDays)
   const since = $derived(addDays(today, -windowDays + 1))
   const newKev = $derived(kev.filter((k) => inLastDays(k.added, today, windowDays)))
+  const newRansom = $derived(newKev.filter((k) => k.ransom).length)
   // the window before this one, for an "is this a bad week?" comparison
   const prevKevN = $derived(kev.filter((k) => k.added < since && k.added >= addDays(since, -windowDays)).length)
   const passedWindow = $derived(kev.filter((k) => ui.kevDeadlines && k.due && inLastDays(k.due, today, windowDays) && k.due < today).sort((a, b) => b.due.localeCompare(a.due))) // most recently passed first
@@ -89,7 +90,7 @@
 
 <header class="view-head">
   <h2>This week</h2>
-  <p class="insight"><b>{num(newKev.length)}</b> new KEV listing{newKev.length === 1 ? '' : 's'} in the last {windowDays} days, compared with {num(prevKevN)} in the {windowDays} days before.{#if newKev.some((k) => k.ransom)} {num(newKev.filter((k) => k.ransom).length)} of the new listings have known ransomware use.{/if}</p>
+  <p class="insight"><b>{num(newKev.length)}</b> new KEV listing{newKev.length === 1 ? '' : 's'} in the last {windowDays} days, compared with {num(prevKevN)} in the {windowDays} days before.{#if newRansom}{' '}{num(newRansom)} of the new listings {newRansom === 1 ? 'has' : 'have'} known ransomware use.{/if}</p>
   <p>New KEV entries{ui.kevDeadlines ? ", federal deadlines" : ""} and elevated EPSS for your shift handover. Match these signals to your assets before acting.</p>
   {#if nvdLag}<p class="coverage">NVD publication data in this view runs through {dateShort(recent.latest)}; the selected {windowDays}-day window ends {dateShort(today)}. New CVE counts may be partial.</p>{/if}
 </header>
