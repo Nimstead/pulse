@@ -69,4 +69,10 @@
     .head { align-items: end; }
     .sp { display: none; }
   }
+  @container (max-width: 16rem) {
+    .head, .row { grid-template-columns: 1.25rem minmax(0, 1fr) minmax(0, 1fr); }
+    .head > :nth-child(2), .name { grid-column: 2 / -1; }
+    .head > :nth-child(3), .v { grid-column: 2; }
+    .head > :nth-child(4), .k { grid-column: 3; }
+  }
 </style>

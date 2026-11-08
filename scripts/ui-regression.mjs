@@ -329,8 +329,13 @@ await check('mobile table PNGs include every column and omit pagination controls
     }
   })
   await p.setViewportSize({ width: 390, height: 844 })
-  for (const [route, number] of [['watchlist', 17], ['week', 15]]) {
+  for (const [route, number, textScale] of [['watchlist', 17, 100], ['week', 15, 100], ['watchlist', 17, 200]]) {
     await visit(p, '/' + route + '/')
+    if (textScale === 200) await p.evaluate(async () => {
+      document.documentElement.style.fontSize = '200%'
+      await document.fonts.ready
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    })
     const button = p.getByRole('button', { name: 'Copy Figure ' + number + ' as PNG' })
     const figure = p.locator('figure').filter({ has: button })
     await figure.locator('table tbody tr').first().waitFor()
@@ -549,6 +554,49 @@ await check('phone triage shows priority and primary signals without sideways pa
   assert.match(text, /Act now/i); assert.match(text, /Apache Log4j2/); assert.match(text, /10\.0/); assert.match(text, /EPSS/); assert.match(text, /99\.9%/)
   await id.click()
   await p.getByRole('dialog', { name: 'CVE-2021-44228' }).getByText(/Improper input validation/).waitFor()
+})
+
+await check('masthead controls remain visible with enlarged text at every breakpoint', async p => {
+  await visit(p)
+  for (const width of [320, 390, 640, 641, 720, 1024, 1440]) {
+    await p.setViewportSize({ width, height: 1000 })
+    for (const scale of [100, 200]) {
+      await p.evaluate(scale => { document.documentElement.style.fontSize = scale + '%' }, scale)
+      const clipped = await p.locator('.masthead').evaluate(header => [...header.querySelectorAll('h1, button')].filter(el => {
+        const r = el.getBoundingClientRect()
+        return r.left < 0 || r.right > innerWidth
+      }).map(el => el.getAttribute('aria-label') || el.textContent))
+      assert.deepEqual(clipped, [], width + 'px / ' + scale + '% text: masthead controls must stay on screen')
+    }
+  }
+})
+
+await check('source notes take keyboard users directly to the referenced figure', async p => {
+  await visit(p)
+  const link = p.locator('#note-4').getByRole('link', { name: 'Figure 12', exact: true })
+  await link.focus(); await link.press('Enter')
+  const figure = p.locator('#figure-12')
+  await figure.waitFor()
+  assert.match(new URL(p.url()).pathname, /severity/)
+  assert(await figure.evaluate(el => el === document.activeElement))
+  assert.match(await figure.locator('h3').innerText(), /CVEs NVD has not analysed/)
+  assert(await figure.evaluate(el => el.getBoundingClientRect().top >= 0 && el.getBoundingClientRect().top < innerHeight / 2))
+})
+
+await check('all routes reflow without page panning at 200 percent text', async p => {
+  for (const width of [320, 390, 641, 720]) for (const route of ['/', '/exploitation/', '/severity/', '/vendors/', '/week/', '/watchlist/']) {
+    await p.setViewportSize({ width, height: 1000 })
+    await visit(p, route)
+    if (route === '/watchlist/') await p.getByRole('button', { name: 'CVE-2021-44228', exact: true }).first().waitFor()
+    await p.evaluate(async () => {
+      document.documentElement.style.fontSize = '200%'
+      await document.fonts.ready
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    })
+    const size = await p.evaluate(() => ({ width: innerWidth, content: document.documentElement.scrollWidth, skipBottom: document.querySelector('.skip').getBoundingClientRect().bottom }))
+    assert(size.content <= size.width + 1, route + ' at ' + width + 'px: page content must fit enlarged text')
+    assert(size.skipBottom <= 0, 'the unfocused skip link must remain outside the viewport')
+  }
 })
 
 await browser.close()

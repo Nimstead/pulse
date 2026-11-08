@@ -212,6 +212,7 @@
   .start li { display: grid; grid-template-columns: 1.5rem 7.75rem 15.5rem minmax(0, 1fr) 9rem; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }
   .start li.no-deadlines { grid-template-columns: 1.5rem 7.75rem 15.5rem minmax(0, 1fr); }
   .start li .chip { justify-self: start; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .start .mono-id { white-space: normal; overflow-wrap: anywhere; }
   .start .due { text-align: right; font: 800 0.9375rem/1.2 var(--display); letter-spacing: -0.01em; color: var(--ink-2); }
   .start .due.late { color: var(--ink); }
   .start .n { font: 800 1.1rem/1 var(--display); color: var(--ink-3); }

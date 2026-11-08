@@ -37,10 +37,9 @@
   .range { font-size: 0.9375rem; }
   .range b { font-weight: 800; letter-spacing: -0.01em; }
   .n { color: var(--ink-3); }
-  .presets { margin-left: auto; display: inline-flex; border: 2px solid var(--ink); }
-  .presets button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.4rem 0.8rem; min-height: 2.75rem; font: 700 0.75rem/1.2 var(--sans); color: var(--ink-2); cursor: pointer; transition: background-color 120ms, color 120ms; }
+  .presets { margin-left: auto; display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; border: 2px solid var(--ink); background: var(--ink); }
+  .presets button { background: var(--paper); border: 0; padding: 0.4rem 0.8rem; min-height: 2.75rem; font: 700 0.75rem/1.2 var(--sans); color: var(--ink-2); cursor: pointer; transition: background-color 120ms, color 120ms; }
   .presets button:hover { color: var(--ink); background: var(--shade); }
-  .presets button:first-child { border-left: 0; }
   .presets button:active { background: var(--shade); }
   .presets button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
   @media (max-width: 560px) {

@@ -382,6 +382,10 @@
   .latest li { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; gap: 0.25rem 1.25rem; padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
   .latest li .chip { justify-self: start; }
   @media (max-width: 640px) { .latest ul { grid-template-columns: 8.5rem minmax(0, 1fr); } .latest li > :nth-child(n + 3) { grid-column: 2; } }
+  @container (max-width: 16rem) {
+    .latest ul { grid-template-columns: minmax(0, 1fr); }
+    .latest li > :nth-child(n) { grid-column: 1; }
+  }
   .latest .v { font-weight: 600; }
   .latest .d { color: var(--ink-3); font-size: 0.875rem; }
   .cta { text-decoration: none; margin-top: 1.25rem; font: 700 0.9375rem/1 var(--sans); padding: 0.95rem 1.35rem; background: var(--ink); color: var(--paper); border: 2px solid var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }

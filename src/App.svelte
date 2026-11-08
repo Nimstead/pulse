@@ -120,6 +120,13 @@
     target?.focus({ preventScroll: true })
     target?.scrollIntoView({ block: 'center' })
   }
+  async function showAnalysisCoverage() {
+    go('severity')
+    await tick()
+    const figure = document.getElementById('figure-12')
+    figure?.focus({ preventScroll: true })
+    figure?.scrollIntoView({ block: 'start' })
+  }
 
   function onkey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); ui.search = true }
@@ -190,7 +197,7 @@
       <li id="note-1" tabindex="-1"><b>CVEs</b> come from the NVD CVE JSON 2.0 feeds (feed time {data.meta.nvd.slice(0, 16).replace('T', ' ')} UTC) and are counted by NVD publication month. {num(data.meta.rejected)} rejected CVEs are excluded from all counts. The current month is partial and is hatched in charts. The headline trend compares the latest 12 full months with the 12 before; the vendor comparison uses this calendar year so far against all of last year.</li>
       <li id="note-2" tabindex="-1"><b>Exploited</b> means listed in the CISA Known Exploited Vulnerabilities catalogue (version {data.meta.kev.version}, {num(data.meta.kevCount)} entries). KEV only lists vulnerabilities with reliable evidence of exploitation that CISA tracks, so it undercounts real-world exploitation.</li>
       <li id="note-3" tabindex="-1"><b>Days to KEV</b> is the gap between NVD publication and the KEV <i>dateAdded</i>. Zero or less means CISA listed it on or before NVD published it. This does not establish when exploitation began or whether a fix was available; it is not a zero-day classification.</li>
-      <li id="note-4" tabindex="-1"><b>Severity</b> uses the CVSS base score in the order v3.1, v3.0, v4.0, v2, preferring NVD's own score over the CNA's. Many recent CVEs have not been analysed by NVD yet (see Figure 12).</li>
+      <li id="note-4" tabindex="-1"><b>Severity</b> uses the CVSS base score in the order v3.1, v3.0, v4.0, v2, preferring NVD's own score over the CNA's. Many recent CVEs have not been analysed by NVD yet (see <a href="/severity/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); showAnalysisCoverage() }}>Figure 12</a>).</li>
       <li id="note-5" tabindex="-1"><b>EPSS</b> is the FIRST Exploit Prediction Scoring System ({data.meta.epss.match(/model_version:([^,]+)/)?.[1] ?? 'model'}, scored {data.meta.epss.match(/score_date:(\d{4}-\d\d-\d\d)/)?.[1] ?? ''}). It estimates the probability of exploitation activity in the next 30 days. It is a probability, not a verdict.</li>
       <li id="note-6" tabindex="-1"><b>Vendor and product</b> come from the first vulnerable CPE (CVE counts by vendor use the year of publication), falling back to the CNA's affected data. Names are normalised, so small vendors may appear under slightly different spellings.</li>
     </ol>
@@ -226,12 +233,12 @@
   .issue { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; padding-top: 0.6rem; padding-bottom: 0.6rem; font: 500 0.6875rem/1.4 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ash); }
   .issue .series { font-weight: 700; color: var(--band-fg); }
   .src { margin-left: auto; }
-  .masthead { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-top: 1.25rem; padding-bottom: 1.25rem; }
+  .masthead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; padding-top: 1.25rem; padding-bottom: 1.25rem; }
   h1 { font: 400 clamp(1.6rem, 3vw, 1.85rem)/1 var(--display); letter-spacing: -0.045em; }
   h1 a { text-decoration: none; display: inline-block; padding: 0.2rem 0; }
   @media (max-width: 360px) { h1 { font-size: 1.4rem; } }
   .co { font-weight: 800; }
-  .tools { display: flex; gap: 0.5rem; }
+  .tools { display: flex; flex-wrap: wrap; gap: 0.5rem; max-width: 100%; }
   .search, .theme {
     display: inline-flex; align-items: center; gap: 0.6rem; height: 2.75rem; border: 2px solid var(--ink);
     background: var(--paper); padding: 0 0.85rem; cursor: pointer; color: var(--ink-3); transition: border-color 150ms, color 150ms;
@@ -247,15 +254,15 @@
   /* Wrap whenever labels need room; multiple rows must not cover reading content. */
   @media (max-width: 640px) { .nav.single-row { position: static; } .nav .wrap { gap: 0 1.1rem; } .nav .wrap a { display: flex; align-items: center; min-height: 2.75rem; padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
   .nav a:focus-visible { outline-offset: -2px; }
-  .skip { position: absolute; left: 1rem; top: -100px; z-index: 30; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-weight: 700; }
-  .skip:focus { top: 0.5rem; }
+  .skip { position: absolute; left: 1rem; top: 0; transform: translateY(calc(-100% - 1rem)); max-width: calc(100% - 2rem); z-index: 30; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-weight: 700; }
+  .skip:focus { top: 0.5rem; transform: none; }
   main:focus, .notes:focus { outline: none; } /* programmatic focus targets */
   .closing :focus-visible { outline-color: var(--band-fg); } /* an Ink ring would vanish on the band */
-  .nav a { flex-shrink: 0; padding: 0.95rem 0 0.85rem; margin-bottom: -1px; text-decoration: none; font-weight: 500; font-size: 0.9375rem; letter-spacing: -0.01em; color: var(--ink-3); border-bottom: 2px solid transparent; transition: color 120ms, border-color 120ms; }
+  .nav a { flex-shrink: 0; max-width: 100%; padding: 0.95rem 0 0.85rem; margin-bottom: -1px; text-decoration: none; font-weight: 500; font-size: 0.9375rem; letter-spacing: -0.01em; color: var(--ink-3); border-bottom: 2px solid transparent; transition: color 120ms, border-color 120ms; }
   .nav a:hover { color: var(--ink); border-bottom-color: var(--line-strong); }
   .nav a[aria-current='page'] { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
   main { min-height: 60vh; }
-  .view { animation: view-in 420ms var(--ease-out) both; }
+  .view { container-type: inline-size; animation: view-in 420ms var(--ease-out) both; }
   @keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
   .loading { display: flex; gap: 6px; align-items: flex-end; height: 140px; padding: 3rem 0; }
   .loading span { width: 18px; background: var(--ink); animation: pulse 900ms ease-in-out infinite alternate; }

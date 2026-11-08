@@ -119,7 +119,7 @@ table.data tr:hover td { background: var(--shade); }
   .group-members li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.25rem 0.75rem; }
 }
 .view-head { padding: clamp(2rem, 4vw, 3.25rem) 0 1.25rem; max-width: 72ch; }
-.view-head h2 { font: 800 clamp(2.2rem, 5vw, 3.75rem)/0.95 var(--display); letter-spacing: -0.05em; }
+.view-head h2 { font: 800 clamp(2.2rem, 5vw, 3.75rem)/0.95 var(--display); letter-spacing: -0.05em; overflow-wrap: anywhere; hyphens: auto; }
 .view-head .insight { color: var(--ink); font-size: clamp(1.25rem, 2vw, 1.5rem); line-height: 1.3; letter-spacing: -0.02em; font-weight: 500; max-width: 46ch; margin-top: 1.1rem; }
 .view-head .insight b { font-weight: 800; }
 .view-head p { color: var(--ink-3); margin: 0.9rem 0 0; font-size: 1.125rem; line-height: 1.5; max-width: 62ch; }

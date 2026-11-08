@@ -32,7 +32,7 @@
   }
 </script>
 
-<figure bind:this={node}>
+<figure id="figure-{n}" tabindex="-1" bind:this={node}>
   <figcaption>
     <div class="head">
       <h3 class="cap"><span class="fig">Figure {n}.</span> <span class="title">{title}</span></h3>
@@ -72,13 +72,13 @@
 </figure>
 
 <style>
-  figure { margin: 0; padding: 1rem 0 1.75rem; border-top: 2px solid var(--rule-strong); min-width: 0; container-type: inline-size; }
+  figure { margin: 0; padding: 1rem 0 1.75rem; border-top: 2px solid var(--rule-strong); min-width: 0; container-type: inline-size; scroll-margin-top: 5rem; }
   figcaption { display: flex; gap: 1rem; justify-content: space-between; align-items: baseline; }
   .head { font-size: 1.25rem; max-width: 60ch; min-width: 0; }
   .cap { margin: 0; font: 700 1.25rem/1.25 var(--display); letter-spacing: -0.02em; text-wrap: wrap; }
   .fig { font-weight: 800; color: var(--ink-3); margin-right: 0.25em; white-space: nowrap; }
   .sub { font: 400 0.875rem/1.45 var(--sans); letter-spacing: 0; color: var(--ink-3); margin: 0.3rem 0 0; }
-  .actions { display: flex; gap: 0.25rem; flex-shrink: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.25rem; flex-shrink: 0; max-width: 100%; }
   .actions button {
     background: var(--paper); border: 2px solid var(--ink); padding: 0.5rem 0.85rem; min-height: 2.75rem;
     font: 700 0.8125rem/1.1 var(--sans); color: var(--ink); cursor: pointer; min-width: 5rem;

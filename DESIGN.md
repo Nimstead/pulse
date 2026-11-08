@@ -71,6 +71,11 @@ typography:
     fontWeight: 400
     lineHeight: 1.55
     fontFeature: "tnum"
+  summary:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 700
+    lineHeight: 1.55
   ui:
     fontFamily: "Archivo Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.9375rem"
@@ -239,6 +244,7 @@ An achromatic ink-and-paper palette with a single semantic crimson. Every themed
 - **Title** (700, 1.25rem, 1.25, -0.02em): figure captions, list heads such as "Latest confirmed exploitation", the KEV name in the sheet.
 - **Lede** (400, 1.125rem, 1.5): view introductions in Muted, max 62ch.
 - **Body** (400, 1rem, 1.55): running text and table cells (tables at 0.875rem).
+- **Summary** (700, 1.0625rem, 1.55): snapshot change-summary headings; a modest step above body text inside the detailed handover.
 - **Small** (400, 0.8125rem, 1.55): figure notes, legends, sources and notes, max 80ch.
 - **Label** (600, 0.6875rem, 0.12em, uppercase, Muted or Ash on bands): table headers, definition terms, field labels, the names over stat numerals and Pulse signs, and small section heads such as "Sources and notes" and "Timeline". The topbar issue line uses the same tracking at 500.
 - **Mono** (500, 0.875em, -0.01em): CVE IDs, kbd hints and the CVE-list textarea (400, 0.875rem, 1.6). Nowhere else.

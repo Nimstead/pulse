@@ -48,6 +48,14 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
     el.style.width = '100%'
     el.style.tableLayout = 'auto'
   })
+  for (const [selector, display] of [['thead', 'table-header-group'], ['tbody', 'table-row-group'], ['tr', 'table-row']]) {
+    clone.querySelectorAll<HTMLElement>(`table.data ${selector}`).forEach((el) => {
+      el.style.display = el.hasAttribute('hidden') ? 'none' : display
+      el.style.position = 'static'
+      el.style.width = 'auto'
+      el.style.overflow = 'visible'
+    })
+  }
   clone.querySelectorAll<HTMLElement>('table.data, table.data thead, table.data tbody, table.data tr').forEach((el) => { el.style.height = 'auto' })
   // Expand only the detached copy: a mobile viewport must not crop exported columns.
   clone.querySelectorAll<HTMLElement>('.table-scroll').forEach((el) => {
@@ -62,6 +70,11 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
   clone.querySelectorAll<HTMLElement>('.row-identity').forEach((el) => {
     el.style.position = 'static'
     el.style.left = 'auto'
+    const peer = el.parentElement?.querySelector<HTMLElement>('th, td')
+    if (peer) {
+      el.style.padding = peer.style.padding
+      el.style.borderBottom = peer.style.borderBottom
+    }
   })
   clone.querySelectorAll<HTMLElement>('[data-no-export]').forEach((el) => {
     // the inlined heights of everything above an in-flow control would keep its space

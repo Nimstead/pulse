@@ -129,7 +129,7 @@
   .more { min-height: 2.75rem; margin-top: 0.5rem; font-weight: 600; }
   .sec { margin: 1.4rem 0 0.6rem; }
   .kl { list-style: none; margin: 0; padding: 0; font-size: 0.875rem; }
-  .kl li { display: flex; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); }
+  .kl li { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); }
   .kl span { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .kl .d { margin-left: auto; color: var(--ink-3); flex-shrink: 0; }
   @media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } .drill { position: static; } }

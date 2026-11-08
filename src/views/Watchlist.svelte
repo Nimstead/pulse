@@ -592,5 +592,15 @@
   @media (max-width: 900px) { .intake { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 560px) { .filters { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 720px) { .tiles { grid-template-columns: 1fr 1fr; } }
+  @container (max-width: 36rem) { .filters { grid-template-columns: minmax(0, 1fr); } }
+  @container (max-width: 16rem) {
+    .tiles { grid-template-columns: minmax(0, 1fr); }
+    /* Keep each enlarged record together when two readable columns no longer fit. */
+    table.data thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    table.data tbody tr { display: grid; grid-template-columns: minmax(0, 1fr); }
+    table.data .row-identity { display: block; width: auto; border-bottom: 0; padding-bottom: 0; }
+    table.data .phone-signal { display: block; padding-top: 0.4rem; }
+    .phone-priority .chip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  }
   @media (max-width: 560px) { .hrow { grid-template-columns: 1fr; gap: 0.35rem; } }
 </style>
