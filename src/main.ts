@@ -27,7 +27,7 @@ async function start() {
     const { route, params, windowDays, kevDeadlines, vendorSort, cweSort } = readLocation(location.pathname, location.hash)
     const [from, to] = readPeriod(months.map((m) => m.ym), params.get('from'), params.get('to'))
     Object.assign(ui, { route, from, to, windowDays, kevDeadlines, vendorSort, cweSort, vendor: params.get('vendor') ?? '', cve: params.get('cve') ?? '' })
-    feed.generated = meta.generated.slice(0, 10); feed.months = months.map((m) => m.ym)
+    feed.generated = meta.generated.slice(0, 10); feed.months = months.map((m) => m.ym); feed.meta = meta
     // The published textarea is usable while data loads; keep its private input in memory.
     const input = target.querySelector<HTMLTextAreaElement>('#watch-text')
     const editing = input === document.activeElement

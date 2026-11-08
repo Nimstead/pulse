@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import { copyPng, downloadCsv } from '../lib/export'
-  import { provenance } from '../lib/state.svelte'
+  import { feed, provenance } from '../lib/state.svelte'
 
   // period: false for a figure that ignores the shared period, so its export does not claim one
   let { n, title, sub = '', csv, name, period = true, legend, notes, children }: {
@@ -22,6 +22,22 @@
   const dataId = $props.id()
   $effect(() => { dataRows; page = 0 })
   const cellText = (value: unknown) => value == null ? '' : typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value)
+  function saveCsv() {
+    const notes = node.querySelector('.notes')?.cloneNode(true) as HTMLElement | undefined
+    notes?.querySelectorAll('[data-no-export]').forEach((el) => el.remove())
+    const metadata = {
+      snapshot_generated_at: feed.meta?.generated ?? feed.generated,
+      source_nvd_feed: feed.meta?.nvd ?? '',
+      source_kev_catalogue: feed.meta?.kev.version ?? '',
+      source_epss: feed.meta?.epss ?? '',
+      figure_title: title,
+      figure_context: sub,
+      figure_notes: notes?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      provenance: provenance(period),
+    }
+    // Repeated columns keep each row self-contained and the CSV rectangular for import.
+    downloadCsv(dataRows.map((row) => ({ ...row, ...metadata })), name)
+  }
   async function png() {
     clearTimeout(statusTimer)
     status = '…'
@@ -40,7 +56,7 @@
     </div>
     <div class="actions" data-no-export>
       <button onclick={png} disabled={status === '…'} aria-label="Copy Figure {n} as PNG" title="Copy figure as PNG for slides">{status === 'Failed' ? 'Retry PNG' : status || 'Copy PNG'}</button>
-      {#if csv}<button onclick={() => downloadCsv(dataRows, name)} disabled={!dataRows.length} aria-describedby={!dataRows.length ? `${dataId}-empty` : undefined} aria-label="Download Figure {n} data as CSV" title="Download the figure's data">CSV</button>{/if}
+      {#if csv}<button onclick={saveCsv} disabled={!dataRows.length} aria-describedby={!dataRows.length ? `${dataId}-empty` : undefined} aria-label="Download Figure {n} data as CSV" title="Download the figure's data">CSV</button>{/if}
       <span class="sr-only" aria-live="polite">{status === 'Copied' ? `Figure ${n} copied` : status === 'Saved' ? `Figure ${n} saved as PNG` : status === 'Failed' ? 'Copy failed' : ''}</span>
     </div>
   </figcaption>

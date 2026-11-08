@@ -1,4 +1,4 @@
-import { dateShort, monthShort } from './data'
+import { dateShort, monthShort, type Meta } from './data'
 
 /** App-wide UI state, mirrored to the URL hash so any view and period is shareable. */
 export const ui = $state({ route: 'overview', from: 0, to: 0, vendor: '', cve: '', search: false, windowDays: 7, kevDeadlines: false, vendorSort: 'kev', cweSort: 'kev' })
@@ -7,7 +7,7 @@ export const ui = $state({ route: 'overview', from: 0, to: 0, vendor: '', cve: '
 export const notes = $state({ origin: null as HTMLElement | null })
 
 /** Set once the data loads; read only when a figure is exported. */
-export const feed = { generated: '', months: [] as string[] }
+export const feed = { generated: '', months: [] as string[], meta: null as Meta | null }
 
 /** The provenance line under an exported PNG; the period is left off where the figure does not follow it. */
 export const provenance = (period = true) => {

@@ -633,6 +633,24 @@ await check('private case records present their signals before description house
   assert(order.signals < order.notice && order.name < order.notice, 'the CVE meaning and exploitation evidence come before the optional download')
 })
 
+await check('chart CSV files retain the source snapshot and interpretation context', async p => {
+  for (const [route, figure] of [['/', '1'], ['/week/', '15']]) {
+    await visit(p, route)
+    const meta = await (await p.request.get(origin + '/data/meta.json')).json()
+    const pending = p.waitForEvent('download')
+    await p.getByRole('button', { name: `Download Figure ${figure} data as CSV`, exact: true }).click()
+    const stream = await (await pending).createReadStream()
+    const chunks = []; for await (const chunk of stream) chunks.push(chunk)
+    const csv = Buffer.concat(chunks).toString('utf8')
+    assert.match(csv.split('\n')[0], /snapshot_generated_at,source_nvd_feed,source_kev_catalogue,source_epss,figure_title,figure_context,figure_notes,provenance/)
+    for (const source of [meta.generated, meta.nvd, meta.kev.version, meta.epss]) assert(csv.includes(source), 'download must retain exact source metadata')
+    if (figure === '1') {
+      assert.match(csv, /NVD publication month/)
+      assert.match(csv, /CISA listing month/)
+    } else assert.match(csv, /Published in the last 7 days/)
+  }
+})
+
 await browser.close()
 console.log(JSON.stringify(results, null, 2))
 process.exitCode = results.some(r => !r.passed) ? 1 : 0

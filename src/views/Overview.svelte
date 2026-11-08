@@ -235,7 +235,7 @@
 {#if indexed}
   {@const cUp = Math.round(indexed.cves.at(-1)! - 100)}
   {@const kUp = Math.round(indexed.kev.at(-1)! - 100)}
-  <Figure n={1} name="volume-vs-exploitation" title="Volume against exploitation" sub="Rolling 12-month totals, plain counts, from {monthShort(indexed.from)} (after the KEV launch backfill).{indexed.context ? ` ${monthShort(indexed.base)} is comparison context before the selected period.` : ''}"
+  <Figure n={1} name="volume-vs-exploitation" title="Volume against exploitation" sub="Rolling 12-month totals, plain counts: CVEs by NVD publication month; KEV by CISA listing month. From {monthShort(indexed.from)}, after the KEV launch backfill.{indexed.context ? ` ${monthShort(indexed.base)} is comparison context before the selected period.` : ''}"
     csv={() => indexed.labels.map((l, i) => ({ month: l, cves_12mo: indexed.cvesN[i], kev_12mo: indexed.kevN[i] }))}>
     <div class="pair">
       <div>
