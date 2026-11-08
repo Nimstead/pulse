@@ -139,8 +139,8 @@
       shown = 50
       filter = ''
       priority = 'all'
-    } catch (e) {
-      if (!controller.signal.aborted && run === analysisRun) analysisError = `Analysis failed: ${String((e as Error).message ?? e)}. Your list is still only in this browser. Use Analyse to retry.`
+    } catch {
+      if (!controller.signal.aborted && run === analysisRun) analysisError = 'Analysis failed. Could not download the public CVE data. Check your connection, then use Analyse to retry. Your list is still only in this browser.'
     } finally {
       if (run === analysisRun) { analysisController = null; busy = false }
     }
@@ -288,7 +288,7 @@
     {#if !busy && !analysisError && !stale && !watch.example && watch.ids.length}
       <div class="analysis-ready"><p role="status">Analysis ready: {num(n)} matched, {num(watch.missing.length)} not found, {num(watch.rejected.length)} rejected.</p><button class="linklike" onclick={viewResults}>View results</button></div>
     {/if}
-    {#if analysisError}<p class="err" role="alert">{analysisError}{#if !stale && watch.ids.length} {watch.example ? 'The worked example is still shown below.' : `Previous results are still shown below, using public data from ${dateShort(today)}.`}{/if}</p>{/if}
+    {#if analysisError}<p class="err" role="alert">{analysisError}{#if !stale && watch.ids.length}{' '}{watch.example ? 'The worked example is still shown below.' : `Previous results are still shown below, using public data from ${dateShort(today)}.`}{/if}</p>{/if}
     {#if err}<p class="err" role="alert">{err}</p>{/if}
   </div>
   <aside class="privacy">

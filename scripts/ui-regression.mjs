@@ -363,6 +363,7 @@ await check('priority data retains visible attribution and labels raw NVD fields
 })
 await check('historical vendor insight does not invent leaders from zero KEV observations', async p => {
   await visit(p, '/vendors/#?from=2001-01&to=2001-12')
+  await p.locator('.view-head').getByText(/No KEV listings/).waitFor()
   const intro = await p.locator('.view-head').innerText()
   assert.match(intro, /No KEV listings/)
   assert(!/ahead of|most common weakness/.test(intro))
@@ -387,6 +388,7 @@ await check('failed reanalysis labels retained results and does not announce rea
   const error = p.getByRole('alert').filter({ hasText: 'Analysis failed' })
   await error.waitFor()
   assert.match(await error.innerText(), /Previous results.*public data/s)
+  assert(!/503|Failed to fetch/.test(await error.innerText()), 'download errors should explain recovery without transport jargon')
   assert.equal(await p.getByText(/^Analysis ready:/).count(), 0)
   assert.equal(await p.getByLabel('CVE list', { exact: true }).inputValue(), 'CVE-2024-3400')
   await p.unroute('**/data/index-*.json')
@@ -442,6 +444,30 @@ await check('automatic theme changes update the toggle and reverse on the first 
   await toggle.waitFor()
   await toggle.click()
   assert.equal(await p.evaluate(() => document.documentElement.dataset.theme), 'light')
+})
+
+await check('PNG exports include an outer gutter around the figure and provenance', async p => {
+  await p.emulateMedia({ colorScheme: 'dark' })
+  await p.setViewportSize({ width: 390, height: 844 })
+  await p.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: { write: async () => { throw new Error('Test download fallback') } } })
+    const encode = HTMLCanvasElement.prototype.toBlob
+    HTMLCanvasElement.prototype.toBlob = function (...args) {
+      const ctx = this.getContext('2d'), background = getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0, 3).map(Number)
+      let edgeInk = 0
+      for (const x of [0, this.width - 1]) {
+        const data = ctx.getImageData(x, 0, 1, this.height).data
+        for (let i = 0; i < data.length; i += 4) if (background.some((value, channel) => Math.abs(data[i + channel] - value) > 2)) edgeInk++
+      }
+      window.exportEdgeInk = edgeInk
+      return encode.apply(this, args)
+    }
+  })
+  await visit(p)
+  const pending = p.waitForEvent('download')
+  await p.getByRole('button', { name: 'Copy Figure 1 as PNG', exact: true }).click()
+  await pending
+  assert.equal(await p.evaluate(() => window.exportEdgeInk), 0, 'text and rules must not touch the image edges')
 })
 
 await browser.close()

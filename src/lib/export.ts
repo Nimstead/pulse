@@ -36,6 +36,7 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
   const scrollers = [...node.querySelectorAll<HTMLElement>('.table-scroll')]
   const extraWidth = Math.max(0, ...scrollers.map((el) => el.scrollWidth - el.clientWidth))
   const width = Math.ceil(node.getBoundingClientRect().width + extraWidth)
+  const padding = 16, imageWidth = width + padding * 2
   const clone = node.cloneNode(true) as HTMLElement
   inlineStyles(node, clone)
   // Expand only the detached copy: a mobile viewport must not crop exported columns.
@@ -58,7 +59,7 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
     el.remove()
   })
   const root = getComputedStyle(document.documentElement)
-  const wrap = Object.assign(document.createElement('div'), { style: `position:absolute;left:-99999px;top:0;width:${width}px` })
+  const wrap = Object.assign(document.createElement('div'), { style: `position:absolute;left:-99999px;top:0;width:${width}px;padding:${padding}px;box-sizing:content-box` })
   wrap.append(clone)
   if (foot) {
     const p = Object.assign(document.createElement('p'), { textContent: foot })
@@ -72,12 +73,12 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
   const css = await (fonts ??= embedFonts())
   const bg = getComputedStyle(document.body).backgroundColor
   const body = [...wrap.childNodes].map((n) => new XMLSerializer().serializeToString(n)).join('')
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><style>${css}</style><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="background:${bg};width:${width}px;height:${height}px">${body}</div></foreignObject></svg>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${height}"><style>${css}</style><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="background:${bg};width:${imageWidth}px;height:${height}px;padding:${padding}px;box-sizing:border-box">${body}</div></foreignObject></svg>`
   const img = new Image()
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
   await img.decode()
   const scale = 2
-  const canvas = Object.assign(document.createElement('canvas'), { width: width * scale, height: height * scale })
+  const canvas = Object.assign(document.createElement('canvas'), { width: imageWidth * scale, height: height * scale })
   const ctx = canvas.getContext('2d')!
   ctx.scale(scale, scale)
   ctx.drawImage(img, 0, 0)
