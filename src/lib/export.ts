@@ -33,12 +33,22 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
   await Promise.all(node.getAnimations({ subtree: true })
     .filter((animation) => animation.playState === 'running' && animation.effect?.getTiming().iterations !== Infinity)
     .map((animation) => animation.finished.catch(() => {})))
-  const scrollers = [...node.querySelectorAll<HTMLElement>('.table-scroll')]
-  const extraWidth = Math.max(0, ...scrollers.map((el) => el.scrollWidth - el.clientWidth))
-  const width = Math.ceil(node.getBoundingClientRect().width + extraWidth)
-  const padding = 16, imageWidth = width + padding * 2
+  let width = Math.ceil(node.getBoundingClientRect().width)
+  const padding = 16
   const clone = node.cloneNode(true) as HTMLElement
   inlineStyles(node, clone)
+  // A compact phone row becomes the complete table in the exported artifact.
+  clone.querySelectorAll<HTMLElement>('table.data th, table.data td').forEach((el) => {
+    el.style.display = 'table-cell'
+    el.style.width = 'auto'
+    el.style.height = 'auto'
+  })
+  clone.querySelectorAll<HTMLElement>('table.data .mono-id').forEach((el) => { el.style.whiteSpace = 'nowrap' })
+  clone.querySelectorAll<HTMLElement>('table.data').forEach((el) => {
+    el.style.width = '100%'
+    el.style.tableLayout = 'auto'
+  })
+  clone.querySelectorAll<HTMLElement>('table.data, table.data thead, table.data tbody, table.data tr').forEach((el) => { el.style.height = 'auto' })
   // Expand only the detached copy: a mobile viewport must not crop exported columns.
   clone.querySelectorAll<HTMLElement>('.table-scroll').forEach((el) => {
     el.style.overflow = 'visible'
@@ -58,6 +68,13 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
     if (el.style.position !== 'absolute') for (let a = el.parentElement; a; a = a === clone ? null : a.parentElement) a.style.height = 'auto'
     el.remove()
   })
+  // Let text reflow at the final artifact width instead of freezing phone wrapping.
+  clone.querySelectorAll<HTMLElement>('figcaption, .head, .cap, .sub, .legend, .legend > span, .notes').forEach((el) => {
+    el.style.width = 'auto'
+    el.style.height = 'auto'
+  })
+  const head = clone.querySelector<HTMLElement>('.head')
+  if (head) head.style.width = '100%'
   const root = getComputedStyle(document.documentElement)
   const wrap = Object.assign(document.createElement('div'), { style: `position:absolute;left:-99999px;top:0;width:${width}px;padding:${padding}px;box-sizing:content-box` })
   wrap.append(clone)
@@ -66,10 +83,17 @@ export async function copyPng(node: HTMLElement, name: string, foot = '') {
     p.setAttribute('style', `margin:0;padding:8px 0 4px;border-top:1px solid ${root.getPropertyValue('--rule')};font:400 11px/1.4 ${root.getPropertyValue('--sans')};color:${root.getPropertyValue('--ink-3')}`)
     wrap.append(p)
   }
-  // measured off screen, so the image fits what is left once controls are gone and the footer has wrapped
-  document.body.append(wrap)
+  // Measure with only the exported inline styles, just as the SVG will render.
+  // Page media queries and pseudo-elements must not change these dimensions.
+  const host = document.createElement('div')
+  host.attachShadow({ mode: 'closed' }).append(wrap)
+  document.body.append(host)
+  const scrollers = [...clone.querySelectorAll<HTMLElement>('.table-scroll')]
+  width += Math.max(0, ...scrollers.map((el) => el.scrollWidth - el.clientWidth))
+  wrap.style.width = `${width}px`
+  const imageWidth = width + padding * 2
   const height = Math.ceil(wrap.getBoundingClientRect().height)
-  wrap.remove()
+  host.remove()
   const css = await (fonts ??= embedFonts())
   const bg = getComputedStyle(document.body).backgroundColor
   const body = [...wrap.childNodes].map((n) => new XMLSerializer().serializeToString(n)).join('')

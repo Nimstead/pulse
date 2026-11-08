@@ -40,6 +40,17 @@
   })
   const dark = $derived(theme === 'dark' || (!theme && systemDark))
 
+  let nav: HTMLElement
+  let singleRow = $state(false)
+  onMount(() => {
+    const links = nav.querySelectorAll('a')
+    const measure = () => { singleRow = links[0].offsetTop === links[links.length - 1].offsetTop }
+    const observer = new ResizeObserver(measure)
+    observer.observe(nav)
+    measure()
+    return () => observer.disconnect()
+  })
+
   const kevById = $derived(new Map((data?.kev ?? []).map((k) => [k.id, k])))
   const today = $derived(data ? data.meta.generated.slice(0, 10) : '')
   const partial = $derived(!!data && data.months.at(-1)!.ym === today.slice(0, 7))
@@ -146,7 +157,7 @@
   </div>
 </header>
 
-<nav class="nav" aria-label="Sections">
+<nav class="nav" class:single-row={singleRow} aria-label="Sections" bind:this={nav}>
   <div class="wrap">
     {#each ROUTES as r (r.id)}
       <a href={routePath(r.id)} aria-current={ui.route === r.id ? 'page' : undefined} onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go(r.id) }}>{r.label}</a>
@@ -230,11 +241,12 @@
   .search span { font-size: 0.9375rem; min-width: 12rem; text-align: left; }
   kbd { font: 500 0.6875rem var(--mono); border: 1px solid var(--rule); padding: 0.1rem 0.35rem; color: var(--ink-3); }
   .theme { width: 2.75rem; padding: 0; justify-content: center; color: var(--ink); }
-  .nav { position: sticky; top: 0; z-index: 20; background: var(--chrome); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
-  .nav .wrap { display: flex; gap: 0.25rem 2rem; overflow-x: auto; scrollbar-width: none; }
-  /* every tab stays visible on a phone; two wrapped rows are too tall to pin */
-  @media (max-width: 640px) { .nav { position: static; } .nav .wrap { flex-wrap: wrap; gap: 0 1.1rem; } .nav .wrap a { display: flex; align-items: center; min-height: 2.75rem; padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
-  .nav a:focus-visible { outline-offset: -2px; } /* the scrolling row would clip an outside ring */
+  .nav { position: static; top: 0; z-index: 20; background: var(--chrome); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .nav.single-row { position: sticky; }
+  .nav .wrap { display: flex; flex-wrap: wrap; gap: 0.25rem 2rem; }
+  /* Wrap whenever labels need room; multiple rows must not cover reading content. */
+  @media (max-width: 640px) { .nav.single-row { position: static; } .nav .wrap { gap: 0 1.1rem; } .nav .wrap a { display: flex; align-items: center; min-height: 2.75rem; padding: 0.6rem 0 0.5rem; font-size: 0.875rem; } }
+  .nav a:focus-visible { outline-offset: -2px; }
   .skip { position: absolute; left: 1rem; top: -100px; z-index: 30; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-weight: 700; }
   .skip:focus { top: 0.5rem; }
   main:focus, .notes:focus { outline: none; } /* programmatic focus targets */

@@ -36,8 +36,8 @@
       }))
       watch.desc = out
       watch.descFor = forKey
-    } catch (e) {
-      if (!c.signal.aborted) watch.dl.error = String((e as Error).message ?? e)
+    } catch {
+      if (!c.signal.aborted) watch.dl.error = 'Descriptions could not be downloaded'
       c.abort()
     } finally {
       if (ctl === c) { ctl = null; watch.dl.running = false }
@@ -98,12 +98,13 @@
   async function example() {
     const run = ++exampleRun, initialText = watch.text
     exampleShown = true
+    err = ''
     try {
       const ex = await load<{ ids: string[]; rows: IdxRow[] }>('example.json')
       if (run !== exampleRun || watch.text !== initialText || busy || watch.items.length) return
       Object.assign(watch, { ids: ex.ids, ...analyse(ex.ids, ex.rows, kevById), example: true })
       shown = 50
-    } catch (e) { if (run === exampleRun) err = String((e as Error).message ?? e) }
+    } catch { if (run === exampleRun) err = 'The worked example could not be loaded. Choose Show the example again to retry, or paste your own CVEs.' }
   }
   onMount(() => { ready = true; if (!exampleShown && !watch.text && !watch.items.length) example() })
   function cancelAnalysis() {
@@ -307,7 +308,7 @@
 {#if stale}
   <section class="stale" role="alert">
     <h3>Results are hidden because the input changed</h3>
-    <p>The textarea contains {num(parsed.ids.length)} unique CVE IDs. The previous result used {num(watch.ids.length)} IDs and contains {num(n)} analyzed CVEs, plus {num(watch.missing.length)} not found and {num(watch.rejected.length)} rejected. Reanalyse to show results. The previous analysis remains in this tab, but its charts and exports are unavailable until the input matches again or you reanalyse.</p>
+    <p>The textarea contains {num(parsed.ids.length)} unique CVE ID{parsed.ids.length === 1 ? '' : 's'}. The previous result used {num(watch.ids.length)} ID{watch.ids.length === 1 ? '' : 's'} and contains {num(n)} analysed CVE{n === 1 ? '' : 's'}, plus {num(watch.missing.length)} not found and {num(watch.rejected.length)} rejected. Reanalyse to show results. The previous analysis remains in this tab, but its charts and exports are unavailable until the input matches again or you reanalyse.</p>
   </section>
 {:else if watch.ids.length}
   {#if watch.example}<p class="exnote"><b>A worked example.</b> These are 14 well-known CVEs. Paste or drop your own list above and press Analyse to replace them; your list never leaves this browser.</p>{/if}
@@ -368,23 +369,31 @@
     {#if filteredItems.length}
     {#if filteredItems.length > shown}<p class="table-scope">First {num(shown)} of {num(filteredItems.length)} matching CVEs shown. CSV includes all matching CVEs.</p>{/if}
     <p class="table-hint" data-no-export>Scroll sideways for all signals. The CVE stays in view.</p>
+    <p class="phone-hint" data-no-export>Select a CVE for its full record and weakness.</p>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (a scroll region must be focusable to scroll by keyboard) -->
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways">
+    <div class="table-scroll" tabindex="0" role="region" aria-label="CVE priority table">
       <table class="data">
-        <thead><tr><th>Priority</th><th class="row-identity">CVE</th><th>Vendor · product</th><th>Severity</th><th class="r">EPSS</th><th>KEV</th><th>Weakness</th></tr></thead>
+        <thead><tr><th class="full-signal">Priority</th><th class="row-identity">CVE</th><th class="phone-signal" data-no-export>Signals</th><th class="full-signal">Vendor · product</th><th class="full-signal">Severity</th><th class="r full-signal">EPSS</th><th class="full-signal">KEV</th><th class="full-signal">Weakness</th></tr></thead>
         <tbody>
           {#each filteredItems.slice(0, shown) as { row: r, kev, tier } (r[0])}
             <tr>
-              <td><span class="chip" class:solid-red={tier === 0} class:red={tier === 1}>{TIERS[tier].label}</span></td>
-              <td class="row-identity"><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{r[1] ? dateShort(r[1]) : '—'}</div></td>
-              <td class="desc">
+              <td class="full-signal"><span class="chip" class:solid-red={tier === 0} class:red={tier === 1}>{TIERS[tier].label}</span></td>
+              <td class="row-identity"><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{r[1] ? dateShort(r[1]) : '—'}</div><div class="phone-priority" data-no-export><span class="chip" class:solid-red={tier === 0} class:red={tier === 1}>{TIERS[tier].label}</span></div></td>
+              <td class="phone-signal" data-no-export>
+                <b>{kev?.vendor ? kvp(kev.vendor, kev.product) : vp(r[6], r[7])}</b>
+                <div>CVSS {r[3] != null ? r[3].toFixed(1) : 'not scored'}{r[4] ? ` · ${titleCase(r[4].toLowerCase())}` : ''}</div>
+                <div>EPSS {r[8] != null ? epssPct(r[8]) : 'not scored'}</div>
+                {#if kev}<div class="sm">KEV {dateShort(kev.added)}</div>{/if}
+                {#if ui.kevDeadlines && kev?.due}<div class="sm">{kev.due >= today ? 'Federal due' : 'Federal date passed'} {dateShort(kev.due)}</div>{/if}
+              </td>
+              <td class="desc full-signal">
                 {kev?.vendor ? kvp(kev.vendor, kev.product) : vp(r[6], r[7])}
                 {#if watch.desc[r[0]]}<div class="sm">{watch.desc[r[0]].slice(0, 180)}{watch.desc[r[0]].length > 180 ? '…' : ''}</div>{/if}
               </td>
-              <td class="nw">{#if r[4]}<span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span>{:else}<span class="sm">Not scored</span>{/if}</td>
-              <td class="r nw">{#if r[8] != null}<b>{epssPct(r[8])}</b>{#if r[9] != null}<div class="sm">top {r[9] >= 0.999 ? '0.1%' : pct(1 - r[9], 1)}</div>{/if}{:else}—{/if}</td>
-              <td class="nw">{#if kev}Added {dateShort(kev.added)}{#if ui.kevDeadlines && kev.due}<div class="sm" class:overdue={kev.due < today && kev.due >= addDays(today, -90)}>{kev.due >= today ? 'Due' : kev.due >= addDays(today, -90) ? 'Federal date passed ·' : 'Was due'} {dateShort(kev.due)}</div>{/if}{:else}<span class="sm">—</span>{/if}</td>
-              <td class="nw">{r[5] ? (cweNames.get(r[5]) ?? r[5]) : '—'}</td>
+              <td class="nw full-signal">{#if r[4]}<span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span>{:else}<span class="sm">Not scored</span>{/if}</td>
+              <td class="r nw full-signal">{#if r[8] != null}<b>{epssPct(r[8])}</b>{#if r[9] != null}<div class="sm">top {r[9] >= 0.999 ? '0.1%' : pct(1 - r[9], 1)}</div>{/if}{:else}—{/if}</td>
+              <td class="nw full-signal">{#if kev}Added {dateShort(kev.added)}{#if ui.kevDeadlines && kev.due}<div class="sm" class:overdue={kev.due < today && kev.due >= addDays(today, -90)}>{kev.due >= today ? 'Due' : kev.due >= addDays(today, -90) ? 'Federal date passed ·' : 'Was due'} {dateShort(kev.due)}</div>{/if}{:else}<span class="sm">—</span>{/if}</td>
+              <td class="nw full-signal">{r[5] ? (cweNames.get(r[5]) ?? r[5]) : '—'}</td>
             </tr>
           {/each}
         </tbody>
@@ -553,6 +562,19 @@
   .no-match { border-top: 2px solid var(--rule-strong); padding: 1rem 0; margin: 1rem 0; }
   .no-match h3 { margin: 0; }
   td.desc { max-width: 46ch; }
+  .phone-signal, .phone-priority, .phone-hint { display: none; }
+  @media (max-width: 600px) {
+    .full-signal, .table-hint { display: none; }
+    .phone-signal { display: table-cell; overflow-wrap: anywhere; }
+    .phone-signal b { display: block; margin-bottom: 0.3rem; }
+    .phone-signal div + div { margin-top: 0.2rem; }
+    .phone-priority { display: block; margin-top: 0.45rem; }
+    .phone-hint { display: block; margin: 0 0 0.75rem; color: var(--ink-3); font-size: 0.8125rem; }
+    table.data { table-layout: fixed; }
+    table.data .row-identity { position: static; width: 48%; padding-left: 0; border-right: 0; }
+    table.data .phone-signal { padding-right: 0; }
+    .row-identity .mono-id { white-space: normal; overflow-wrap: anywhere; }
+  }
   .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
   .hbars { display: grid; gap: 1.1rem; }
   .hrow { display: grid; grid-template-columns: 8rem 1fr; gap: 1rem; align-items: center; }

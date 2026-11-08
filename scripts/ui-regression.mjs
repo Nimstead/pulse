@@ -6,7 +6,7 @@ const origin = process.env.PULSE_URL || 'http://127.0.0.1:5173'
 const results = []
 async function visit(page, path = '/') {
   await page.goto(origin + path)
-  await page.waitForFunction(() => location.hash.includes('from='))
+  await page.waitForFunction(() => location.hash.includes('from=') && !document.querySelector('#startup-status, #analysis-startup'))
 }
 async function check(name, fn) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' })
@@ -345,6 +345,25 @@ await check('mobile table PNGs include every column and omit pagination controls
     const svg = await p.evaluate(() => window.lastExportSvg)
     assert.match(svg, /EPSS/)
     assert(!svg.includes('Show more'), 'pagination is not content for a static image')
+    const layout = await p.evaluate(svg => {
+      const doc = new DOMParser().parseFromString(svg, 'image/svg+xml')
+      const artifact = document.importNode(doc.querySelector('foreignObject > div'), true)
+      Object.assign(artifact.style, { position: 'absolute', left: '-99999px', top: '0' })
+      const host = document.createElement('div')
+      host.attachShadow({ mode: 'closed' }).append(artifact)
+      document.body.append(host)
+      const edge = artifact.getBoundingClientRect().right
+      const cells = [...artifact.querySelectorAll('table.data th, table.data td')].filter(cell => !cell.closest('[hidden]'))
+      const fits = cells.every(cell => cell.getBoundingClientRect().width > 0 && cell.getBoundingClientRect().right <= edge - 15)
+      const headers = [...artifact.querySelectorAll('table.data th')].map(cell => cell.textContent)
+      const captionWidth = artifact.querySelector('.head').getBoundingClientRect().width
+      const width = artifact.getBoundingClientRect().width
+      host.remove()
+      return { fits, headers, captionWidth, width }
+    }, svg)
+    assert(layout.fits, route + ': every exported cell must fit inside the image gutter')
+    assert(layout.captionWidth > layout.width / 2, route + ': the caption should reflow at the export width')
+    if (route === 'watchlist') assert.deepEqual(layout.headers, ['Priority', 'CVE', 'Vendor · product', 'Severity', 'EPSS', 'KEV', 'Weakness'])
   }
 })
 
@@ -468,6 +487,68 @@ await check('PNG exports include an outer gutter around the figure and provenanc
   await p.getByRole('button', { name: 'Copy Figure 1 as PNG', exact: true }).click()
   await pending
   assert.equal(await p.evaluate(() => window.exportEdgeInk), 0, 'text and rules must not touch the image edges')
+})
+
+await check('all section labels remain visible at tablet widths and enlarged text', async p => {
+  for (const [width, textScale] of [[720, 100], [1440, 200], [1440, 100]]) {
+    await p.setViewportSize({ width, height: 1000 })
+    await visit(p, '/watchlist/')
+    if (textScale === 200) await p.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+    const visibility = await p.getByRole('navigation', { name: 'Sections' }).evaluate(nav => {
+      const row = nav.querySelector('.wrap'), rect = row.getBoundingClientRect(), style = getComputedStyle(row)
+      return [...row.querySelectorAll('a')].map(a => ({ label: a.textContent, visible: a.getBoundingClientRect().left >= rect.left + parseFloat(style.paddingLeft) - 1 && a.getBoundingClientRect().right <= rect.right - parseFloat(style.paddingRight) + 1 }))
+    })
+    assert(visibility.every(link => link.visible), `${width}px / ${textScale}% text: hidden section labels ${visibility.filter(link => !link.visible).map(link => link.label).join(', ')}`)
+  }
+})
+
+await check('worked-example download failure explains the task and can retry in place', async p => {
+  await p.route('**/data/example.json', route => route.fulfill({ status: 503, body: 'Unavailable' }))
+  await visit(p, '/watchlist/')
+  const error = p.getByRole('alert')
+  await error.waitFor()
+  assert.match(await error.innerText(), /worked example/i)
+  assert(!/example\.json|503/.test(await error.innerText()))
+  await p.unroute('**/data/example.json')
+  await p.getByRole('button', { name: 'Show the example again', exact: true }).click()
+  await p.getByRole('button', { name: 'CVE-2021-44228', exact: true }).first().waitFor()
+  assert.equal(await p.getByRole('alert').count(), 0, 'a successful retry should clear the old error')
+})
+await check('description download failure names the content and keeps retry available', async p => {
+  await visit(p, '/watchlist/')
+  await p.getByRole('button', { name: 'CVE-2021-44228', exact: true }).first().waitFor()
+  await p.route('**/data/cve/*.json', route => route.abort())
+  const section = p.getByRole('region', { name: 'CVE descriptions', exact: true })
+  await section.getByRole('button', { name: 'Download descriptions', exact: true }).click()
+  const error = section.getByRole('alert')
+  await error.waitFor()
+  assert.match(await error.innerText(), /descriptions/i)
+  assert(!/Failed to fetch|\.json/.test(await error.innerText()))
+  assert(await section.getByRole('button', { name: 'Retry', exact: true }).isEnabled())
+})
+
+await check('a complete one-year view retains its rolling comparison and labelled context', async p => {
+  await visit(p, '/#?from=2025-11&to=2026-10')
+  const figure = p.locator('figure').filter({ has: p.getByRole('button', { name: 'Download Figure 1 data as CSV', exact: true }) })
+  await figure.getByRole('button', { name: 'View data', exact: true }).click()
+  const data = figure.getByRole('region', { name: 'Figure 1 data table, scrolls sideways' })
+  assert.equal(await data.locator('tbody tr').count(), 13)
+  assert.match(await data.locator('tbody tr').first().innerText(), /Oct 2025/)
+  assert.match(await data.locator('tbody tr').last().innerText(), /Oct 2026/)
+  assert.match(await figure.locator('.sub').innerText(), /comparison context/)
+})
+await check('phone triage shows priority and primary signals without sideways panning', async p => {
+  await p.setViewportSize({ width: 320, height: 844 })
+  await visit(p, '/watchlist/')
+  const region = p.locator('.table-scroll').first()
+  const id = region.getByRole('button', { name: 'CVE-2021-44228', exact: true })
+  await id.waitFor()
+  assert(await region.evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'phone triage should fit its primary signals in the viewport')
+  const row = region.locator('tbody tr').filter({ has: p.getByRole('button', { name: 'CVE-2021-44228', exact: true }) })
+  const text = await row.innerText()
+  assert.match(text, /Act now/i); assert.match(text, /Apache Log4j2/); assert.match(text, /10\.0/); assert.match(text, /EPSS/); assert.match(text, /99\.9%/)
+  await id.click()
+  await p.getByRole('dialog', { name: 'CVE-2021-44228' }).getByText(/Improper input validation/).waitFor()
 })
 
 await browser.close()

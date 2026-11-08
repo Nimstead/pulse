@@ -132,14 +132,16 @@
   const indexed = $derived.by(() => {
     const first = ymMinus(BACKFILL.to, -12)
     const roll = (ym: string, f: (m: Month) => number) => Array.from({ length: 12 }, (_, i) => byYm.get(ymMinus(ym, i))).reduce((a, m) => a + (m ? f(m) : 0), 0)
-    const pts = selFull.filter((m) => m.ym >= first)
-    if (pts.length < 6) return null
+    let pts = selFull.filter((m) => m.ym >= first)
+    if (pts.length < 12) return null
     // based 12 months before the end, so the last point reads as the headline's year-on-year change
     const base = ymMinus(pts.at(-1)!.ym, 12)
-    if (base < pts[0].ym) return null
+    if (base < first) return null
+    const context = base < pts[0].ym
+    if (context) pts = months.filter((m) => m.ym >= base && m.ym <= pts.at(-1)!.ym)
     const c0 = roll(base, (m) => m.n), k0 = roll(base, (m) => m.kev)
     if (!c0 || !k0) return null
-    return { base, from: pts[0].ym, to: pts.at(-1)!.ym, labels: pts.map((m) => monthShort(m.ym)), cvesN: pts.map((m) => roll(m.ym, (x) => x.n)), kevN: pts.map((m) => roll(m.ym, (x) => x.kev)), c0, k0, cves: pts.map((m) => (roll(m.ym, (x) => x.n) / c0) * 100), kev: pts.map((m) => (roll(m.ym, (x) => x.kev) / k0) * 100) }
+    return { base, context, from: pts[0].ym, to: pts.at(-1)!.ym, labels: pts.map((m) => monthShort(m.ym)), cvesN: pts.map((m) => roll(m.ym, (x) => x.n)), kevN: pts.map((m) => roll(m.ym, (x) => x.kev)), c0, k0, cves: pts.map((m) => (roll(m.ym, (x) => x.n) / c0) * 100), kev: pts.map((m) => (roll(m.ym, (x) => x.kev) / k0) * 100) }
   })
   const newest = $derived(kev.slice(0, 5))
   const tipMonth = (ym: string) => monthLong(ym) + (partial && ym === months.at(-1)!.ym ? ' (partial)' : '')
@@ -211,7 +213,7 @@
 {#if indexed}
   {@const cUp = Math.round(indexed.cves.at(-1)! - 100)}
   {@const kUp = Math.round(indexed.kev.at(-1)! - 100)}
-  <Figure n={1} name="volume-vs-exploitation" title="Volume against exploitation" sub="Rolling 12-month totals, plain counts, from {monthShort(indexed.from)} (after the KEV launch backfill)."
+  <Figure n={1} name="volume-vs-exploitation" title="Volume against exploitation" sub="Rolling 12-month totals, plain counts, from {monthShort(indexed.from)} (after the KEV launch backfill).{indexed.context ? ` ${monthShort(indexed.base)} is comparison context before the selected period.` : ''}"
     csv={() => indexed.labels.map((l, i) => ({ month: l, cves_12mo: indexed.cvesN[i], kev_12mo: indexed.kevN[i] }))}>
     <div class="pair">
       <div>

@@ -254,7 +254,7 @@ Content sits in a single wrap of max 1320px with a fluid gutter of clamp(16px, 3
 
 The Overview opens on a 7:4 grid: the display sentence left, three Summary answers (Volume, Speed, So what) right, each under a 2px rule. Below 1100px the answers go to a three-column row; below 900px everything stacks to one column, including the Pulse band, whose columns switch from left dividers to top dividers. Paired figures use a two-column grid with a gap of clamp(1.5rem, 3vw, 3rem), stacking at 900px. Figure captions stack their actions below 560px.
 
-The tab nav is sticky at the top on Paper with 1px Line borders; under 640px it stops being sticky and wraps to two rows so every tab stays visible, and the search and theme controls collapse to 44px square buttons.
+The tab nav uses Paper with 1px Line borders and wraps whenever its labels need room, including at enlarged text sizes. Only a single row is sticky; multiple rows scroll with the page. Under 640px the nav is always static, and the search and theme controls collapse to 44px square buttons.
 
 Rhythm: figures pad 1rem top, 1.75rem bottom; table rows pad 0.6rem; view heads pad clamp(2rem, 4vw, 3.25rem) top; the notes block opens 3.5rem below the last figure. Every interactive control is at least 2.75rem (44px) tall.
 
