@@ -18,6 +18,6 @@
 <style>
   .fn { font-size: 0.62em; line-height: 0; margin-left: 0.08em; }
   button { position: relative; background: none; border: 0; padding: 0 0.1em; color: var(--fn, var(--ink)); font: 700 1em var(--sans); cursor: pointer; }
-  button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 24px; height: 44px; transform: translate(-50%, -50%); } /* a 24×44px hit area without moving the text */
+  button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); } /* a 44×44px hit area without moving the text */
   button:hover { text-decoration: underline; }
 </style>

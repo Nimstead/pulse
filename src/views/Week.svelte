@@ -103,18 +103,12 @@
 <DeadlineControl />
 </div>
 
-<dl class="signal-summary" aria-label="Supporting handover signals">
-  <div><dt>Elevated EPSS · 10% or more</dt><dd><b>{num(likely.length)}</b> of {num(severeN)} new Critical or High CVEs{#if prevSevereN != null}{' '}({num(prevSevereN)} Critical or High in the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); const target = document.getElementById('fresh'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></dd></div>
-  {#if ui.kevDeadlines}
-    <div><dt>KEV due today</dt><dd><b>{num(todayN)}</b> · US federal deadlines</dd></div>
-    <div><dt>KEV due dates, next {windowDays} days</dt><dd><b>{num(dueSoon.length)}</b> including today · {num(passedWindow.length)} dates passed in this window</dd></div>
-  {/if}
-</dl>
+
 
 {#if start.length}
   <section class="start" aria-labelledby="start-h">
     <div class="start-head">
-      <div><h3 id="start-h">Start here</h3><p class="rank">{#if ui.kevDeadlines}KEV due dates that passed in this window or fall today, then new KEV listings, then other dates due in the next {windowDays} days, then{:else}New KEV listings, then{/if} up to 2 fresh CVEs with the highest available EPSS. Check asset and version applicability before prioritising action.</p></div>
+      <div><h3 id="start-h">Start here</h3><details class="ranking-notes"><summary>How this list is ordered</summary><p class="rank">{#if ui.kevDeadlines}KEV due dates that passed in this window or fall today, then new KEV listings, then other dates due in the next {windowDays} days, then{:else}New KEV listings, then{/if} up to 2 fresh CVEs with the highest available EPSS. Check asset and version applicability before prioritising action.</p></details></div>
       <span class="acts"><button class="copytext" onclick={brief}>{copied || (copyError ? 'Retry copy' : 'Copy as text')}</button><button class="copytext" onclick={saveHandover}>Download handover</button><button class="copytext" onclick={() => downloadCsv(start.map((x, i) => ({ snapshot_date: today, rank: i + 1, cve: x.id, product: x.what, status: x.why, ...(ui.kevDeadlines ? { deadline: x.due } : {}), facts: x.facts })), 'start-here')}>CSV</button></span>
     </div>
     {#if copyError}<p class="export-error" role="alert">{copyError}</p>{/if}
@@ -134,6 +128,14 @@
   </section>
 {/if}
 
+
+<dl class="signal-summary" aria-label="Supporting handover signals">
+  <div><dt>Elevated EPSS · 10% or more</dt><dd><b>{num(likely.length)}</b> of {num(severeN)} new Critical or High CVEs{#if prevSevereN != null}{' '}({num(prevSevereN)} Critical or High in the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); const target = document.getElementById('fresh'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></dd></div>
+  {#if ui.kevDeadlines}
+    <div><dt>KEV due today</dt><dd><b>{num(todayN)}</b> · US federal deadlines</dd></div>
+    <div><dt>KEV due dates, next {windowDays} days</dt><dd><b>{num(dueSoon.length)}</b> including today · {num(passedWindow.length)} dates passed in this window</dd></div>
+  {/if}
+</dl>
 
 <section id="fresh" class="anchor" aria-label="Fresh Critical and High CVEs, by product" tabindex="-1">
 <Figure n={15} name="recent-critical" title="Fresh Critical and High CVEs, by product" sub="Published in the last {windowDays} days: one row per product, ranked by its highest available EPSS. {likely.length ? `${num(likely.length)} ${likely.length === 1 ? 'has' : 'have'} EPSS of 10% or more.` : 'None with an available EPSS has reached 10%.'} EPSS is a probability signal, not a finding of exposure or exploitation."
@@ -185,6 +187,7 @@
 </Figure>
 
 <style>
+  .ranking-notes summary { cursor: pointer; min-height: 2.75rem; align-content: center; font-size: 0.875rem; text-decoration: underline; text-underline-offset: 0.2em; }
   .report-controls { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 0.75rem 1.5rem; margin-bottom: 1.5rem; }
   .toggle { display: inline-flex; border: 2px solid var(--ink); margin-bottom: 0; }
   .toggle button { background: var(--paper); border: 0; border-left: 2px solid var(--ink); padding: 0.55rem 0.95rem; min-height: 2.75rem; font: 700 0.8125rem var(--sans); color: var(--ink-2); cursor: pointer; }

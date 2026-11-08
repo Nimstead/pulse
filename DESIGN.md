@@ -374,3 +374,6 @@ A right-hand dialog, max 520px, with a 2px Ink left edge, sliding in on 320ms ea
 - **Don't** round corners, add gradients, glows or card shadows; shadows belong only to tooltips, the search dialog and the sheet.
 - **Don't** stack an uppercase Label above a heading as an eyebrow.
 - **Don't** build a dark SOC dashboard of glowing KPI tiles and threat counters.
+
+### Precise periods and reading alternatives
+The shared period offers an expandable pair of constrained month fields alongside presets and the brush. View-data tables use readable labels and month names while CSV keys retain their machine format. Weekly handovers place Start here before supporting signals; ranking details are disclosed on demand. Citation hit areas are 44×44px.

@@ -11,6 +11,14 @@
   const target = (n: number): [number, number] => [n ? Math.max(0, last - n + 1) : 0, last]
   const active = $derived(presets.find(([, n]) => { const [f, t] = target(n); return ui.from === f && ui.to === t })?.[0])
   function preset(n: number) { [ui.from, ui.to] = target(n) }
+  function setMonth(edge: 'from' | 'to', input: HTMLInputElement) {
+    const index = months.findIndex((month) => month.ym === input.value)
+    if (index < 0 || (edge === 'from' ? index > ui.to : index < ui.from)) {
+      input.value = months[ui[edge]].ym
+      return
+    }
+    ui[edge] = index
+  }
   let ghost: [number, number] | null = $state(null)
 </script>
 
@@ -28,10 +36,21 @@
       {/each}
     </span>
   </div>
+  <details class="exact-period">
+    <summary>Choose exact months</summary>
+    <div class="month-fields">
+      <label>Start month<input type="month" min={months[0].ym} max={months[ui.to].ym} value={months[ui.from].ym} onchange={(e) => setMonth('from', e.currentTarget)} /></label>
+      <label>End month<input type="month" min={months[ui.from].ym} max={months[last].ym} value={months[ui.to].ym} onchange={(e) => setMonth('to', e.currentTarget)} /></label>
+    </div>
+  </details>
   <Brush values={months.map((m) => m.n)} labels={months.map((m) => m.ym)} bind:from={ui.from} bind:to={ui.to} {ghost} height={compact ? 26 : 48} />
 </div>
 
 <style>
+  .exact-period summary { cursor: pointer; min-height: 2.75rem; align-content: center; font-size: 0.875rem; text-decoration: underline; text-underline-offset: 0.2em; }
+  .month-fields { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; padding-bottom: 0.5rem; }
+  .month-fields label { display: grid; gap: 0.35rem; flex: 1 1 12rem; min-width: 0; font-size: 0.875rem; }
+  .month-fields input { width: 100%; min-width: 0; min-height: 2.75rem; padding: 0.5rem; border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink); font: inherit; }
   .period { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; min-width: 0; }
   .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
   .range { font-size: 0.9375rem; }

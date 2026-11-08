@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { monthShort } from '../lib/data'
   import type { Snippet } from 'svelte'
   import { copyPng, downloadCsv } from '../lib/export'
   import { feed, provenance } from '../lib/state.svelte'
@@ -21,6 +22,8 @@
   const pageRows = $derived(dataRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize))
   const dataId = $props.id()
   $effect(() => { dataRows; page = 0 })
+  const columnLabel = (key: string) => ({ nvd_vendor: 'NVD vendor', nvd_product: 'NVD product', ransomware_known: 'Known ransomware use', other: 'Other exploitation', cve: 'CVE', cves: 'CVEs', epss: 'EPSS', cvss: 'CVSS', kev: 'KEV' }[key] ?? key.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase()))
+  const displayCell = (key: string, value: unknown) => key === 'month' && typeof value === 'string' && /^\d{4}-\d{2}$/.test(value) ? monthShort(value) : cellText(value)
   const cellText = (value: unknown) => value == null ? '' : typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value)
   function saveCsv() {
     const notes = node.querySelector('.notes')?.cloneNode(true) as HTMLElement | undefined
@@ -75,8 +78,8 @@
           <!-- svelte-ignore a11y_no_noninteractive_tabindex (the region must receive focus for keyboard scrolling) -->
           <div class="data-scroll" tabindex="0" role="region" aria-label="Figure {n} data table, scrolls sideways">
             <table>
-              <thead><tr>{#each Object.keys(dataRows[0]) as key (key)}<th scope="col">{key.replaceAll('_', ' ')}</th>{/each}</tr></thead>
-              <tbody>{#each pageRows as row, i (i)}<tr>{#each Object.keys(dataRows[0]) as key (key)}<td>{cellText(row[key])}</td>{/each}</tr>{/each}</tbody>
+              <thead><tr>{#each Object.keys(dataRows[0]) as key (key)}<th scope="col">{columnLabel(key)}</th>{/each}</tr></thead>
+              <tbody>{#each pageRows as row, i (i)}<tr>{#each Object.keys(dataRows[0]) as key (key)}<td>{displayCell(key, row[key])}</td>{/each}</tr>{/each}</tbody>
             </table>
           </div>
           {#if pageCount > 1}<div class="data-pages"><button class="data-more" disabled={currentPage === 0} onclick={() => (page = currentPage - 1)}>Previous page</button><button class="data-more" disabled={currentPage >= pageCount - 1} onclick={() => (page = currentPage + 1)}>Next page</button></div>{/if}
