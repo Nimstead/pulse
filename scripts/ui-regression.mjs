@@ -573,6 +573,7 @@ await check('masthead controls remain visible with enlarged text at every breakp
 
 await check('source notes take keyboard users directly to the referenced figure', async p => {
   await visit(p)
+  await p.getByRole('link', { name: 'Method notes', exact: true }).click()
   const link = p.locator('#note-4').getByRole('link', { name: 'Figure 12', exact: true })
   await link.focus(); await link.press('Enter')
   const figure = p.locator('#figure-12')
@@ -649,6 +650,24 @@ await check('chart CSV files retain the source snapshot and interpretation conte
       assert.match(csv, /CISA listing month/)
     } else assert.match(csv, /Published in the last 7 days/)
   }
+})
+
+await check('method notes stay optional and citations reveal and focus their source', async p => {
+  await visit(p)
+  const notes = p.locator('details#notes')
+  assert.equal(await notes.count(), 1, 'method notes should be a native disclosure')
+  assert.equal(await notes.getAttribute('open'), null)
+  const citation = p.getByRole('button', { name: 'Note 1', exact: true }).first()
+  await citation.focus(); await citation.press('Enter')
+  assert.notEqual(await notes.getAttribute('open'), null)
+  assert.equal(await p.evaluate(() => document.activeElement.id), 'note-1')
+  await p.getByRole('button', { name: 'Back to citation', exact: true }).click()
+  assert(await citation.evaluate(el => el === document.activeElement))
+  await notes.locator('summary').click()
+  assert.equal(await notes.getAttribute('open'), null)
+  await p.getByRole('link', { name: 'Method notes', exact: true }).click()
+  assert.notEqual(await notes.getAttribute('open'), null)
+  assert.equal(await p.evaluate(() => document.activeElement.id), 'notes')
 })
 
 await browser.close()

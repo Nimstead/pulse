@@ -62,7 +62,7 @@
   {:else if mostKev.length}
     <p class="insight"><b>{mostKev[0].label}</b> {mostKev[1]?.kev === mostKev[0].kev ? 'is among the vendors with the most' : 'had the most'} CVEs added to KEV from {monthShort(m0)} to {monthShort(m1)} ({num(mostKev[0].kev)}){#if mostKev[1] && mostKev[1].kev < mostKev[0].kev}, ahead of {mostKev[1].label} ({num(mostKev[1].kev)}){/if}. {#if leadingCwe.length}<b>{leadingCwe[0].label}</b> {leadingCwe[1]?.kev === leadingCwe[0].kev ? 'is among the most common weaknesses' : 'is the most common weakness'} across KEV listings in the period ({num(leadingCwe[0].kev)}).{/if}</p>
   {/if}
-  <p>Where CVEs come from, and the classes of mistake behind them. Select a vendor for its products and exploited CVEs.</p>
+  <p>Select a vendor to inspect its products and exploited CVEs.</p>
 </header>
 <div class="view-period"><Period {months} compact /></div>
 <p class="scope-note"><b>CVE counts:</b> calendar years {y0}{y0 === y1 ? '' : `–${y1}`}{y1 === months.at(-1)!.ym.slice(0, 4) ? ' (latest year so far)' : ''}. <b>KEV listings:</b> {monthShort(m0)}–{monthShort(m1)}. <b>Vendor details:</b> all time, independent of this period.</p>

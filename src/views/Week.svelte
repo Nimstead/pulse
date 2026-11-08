@@ -89,7 +89,7 @@
 
 <header class="view-head">
   <h2>This week</h2>
-  <p class="insight"><b>{num(newKev.length)}</b> new KEV listing{newKev.length === 1 ? '' : 's'} in the last {windowDays} days. {#if ui.kevDeadlines}{todayN ? `${num(todayN)} KEV due date${todayN === 1 ? '' : 's'} fall${todayN === 1 ? 's' : ''} today` : 'No KEV due date falls today'}{passedWindow.length ? `, and ${num(passedWindow.length)} KEV due date${passedWindow.length === 1 ? '' : 's'} passed in this window` : ''}.{/if}</p>
+  <p class="insight"><b>{num(newKev.length)}</b> new KEV listing{newKev.length === 1 ? '' : 's'} in the last {windowDays} days, compared with {num(prevKevN)} in the {windowDays} days before.{#if newKev.some((k) => k.ransom)} {num(newKev.filter((k) => k.ransom).length)} of the new listings have known ransomware use.{/if}</p>
   <p>New KEV entries{ui.kevDeadlines ? ", federal deadlines" : ""} and elevated EPSS for your shift handover. Match these signals to your assets before acting.</p>
   {#if nvdLag}<p class="coverage">NVD publication data in this view runs through {dateShort(recent.latest)}; the selected {windowDays}-day window ends {dateShort(today)}. New CVE counts may be partial.</p>{/if}
 </header>
@@ -102,12 +102,13 @@
 <DeadlineControl />
 </div>
 
-<div class="tiles" class:no-deadlines={!ui.kevDeadlines}>
-  <div><div class="kicker">New KEV listings</div><div class="big red">{num(newKev.length)}</div><div class="cmp"><b>{num(prevKevN)}</b> the {windowDays} days before{newKev.some((k) => k.ransom) ? ` · ${newKev.filter((k) => k.ransom).length} with ransomware use` : ''}</div></div>
-  {#if ui.kevDeadlines}<div><div class="kicker">KEV due today</div><div class="big">{num(todayN)}</div><div class="cmp">US federal deadlines falling today</div></div>
-  <div><div class="kicker">KEV due dates, next {windowDays} days</div><div class="big">{num(dueSoon.length)}</div><div class="cmp">Including today. {num(passedWindow.length)} KEV due dates passed in this window.</div></div>{/if}
-  <div><div class="kicker">Elevated EPSS</div><div class="big">{num(likely.length)}</div><div class="cmp">10% or more, of {num(severeN)} new Critical or High{#if prevSevereN != null}{' '}({num(prevSevereN)} the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); const target = document.getElementById('fresh'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></div></div>
-</div>
+<dl class="signal-summary" aria-label="Supporting handover signals">
+  <div><dt>Elevated EPSS · 10% or more</dt><dd><b>{num(likely.length)}</b> of {num(severeN)} new Critical or High CVEs{#if prevSevereN != null}{' '}({num(prevSevereN)} Critical or High in the {windowDays} days before){/if} · <a href="#fresh" onclick={(e) => { e.preventDefault(); const target = document.getElementById('fresh'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>by product</a></dd></div>
+  {#if ui.kevDeadlines}
+    <div><dt>KEV due today</dt><dd><b>{num(todayN)}</b> · US federal deadlines</dd></div>
+    <div><dt>KEV due dates, next {windowDays} days</dt><dd><b>{num(dueSoon.length)}</b> including today · {num(passedWindow.length)} dates passed in this window</dd></div>
+  {/if}
+</dl>
 
 {#if start.length}
   <section class="start" aria-labelledby="start-h">
@@ -189,15 +190,8 @@
   .toggle button:first-child { border-left: 0; }
   .toggle button:hover { background: var(--shade); color: var(--ink); }
   .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
-  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1rem, 3vw, 3rem); margin-bottom: 1.5rem; }
-  .tiles.no-deadlines { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tiles > div { border-top: 2px solid var(--rule-strong); padding-top: 0.8rem; }
-  .big { font: 800 clamp(2.2rem, 4.5vw, 3.2rem)/0.95 var(--display); letter-spacing: -0.05em; margin-top: 0.35rem; }
-  .big.red { color: var(--kev); }
-  .cmp { font-size: 0.82rem; color: var(--ink-2); margin-top: 0.35rem; }
   .late { color: var(--ink); }
   .coverage { font-size: 0.875rem; color: var(--ink-2); border-left: 3px solid var(--rule-strong); padding-left: 0.75rem; }
-  .tiles .cmp b { font-weight: 800; color: var(--ink); }
   .anchor { scroll-margin-top: 4rem; }
   .start { border-top: 2px solid var(--rule-strong); padding-top: 1rem; margin-bottom: 2rem; }
   .start-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
@@ -223,7 +217,5 @@
   @media (max-width: 900px) { .start li, .start li.no-deadlines { grid-template-columns: 1.5rem minmax(0, 1fr); } .start li > :nth-child(n + 3) { grid-column: 2; justify-self: start; } }
   .sm { font-size: 0.75rem; color: var(--ink-3); }
   .more { margin-top: 0.9rem; font-weight: 600; min-height: 2.75rem; }
-  @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 720px) { .tiles, .tiles.no-deadlines { grid-template-columns: 1fr; } }
   @media (max-width: 560px) { .toggle { width: 100%; } .toggle button { flex: 1; padding-inline: 0.5rem; } }
 </style>

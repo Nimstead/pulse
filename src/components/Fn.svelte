@@ -6,6 +6,8 @@
     const target = document.getElementById(`note-${n}`)
     if (!target) return
     notes.origin = e.currentTarget as HTMLElement
+    const disclosure = target.closest('details')
+    if (disclosure) disclosure.open = true
     target.focus({ preventScroll: true })
     target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
   }

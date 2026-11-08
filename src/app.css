@@ -99,6 +99,11 @@ table.data td.r, table.data th.r { text-align: right; }
 table.data tr:hover td { background: var(--shade); }
 .table-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; } /* hidden: ID hit areas overhang the last row */
 .table-hint { display: none; }
+.signal-summary { display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; margin: 0 0 1.5rem; padding: 0.85rem 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.signal-summary > div { flex: 1 1 15rem; }
+.signal-summary dt { font: 600 0.875rem/1.4 var(--sans); }
+.signal-summary dd { margin: 0.2rem 0 0; font-size: 0.875rem; color: var(--ink-2); }
+.signal-summary dd b { color: var(--ink); font-size: 1.125rem; font-weight: 800; }
 .mobile-signal { display: none; }
 @media (max-width: 900px) {
   .mobile-signal { display: block; margin-top: 0.25rem; font-size: 0.75rem; color: var(--ink-2); }

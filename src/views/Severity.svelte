@@ -42,7 +42,7 @@
 <header class="view-head">
   <h2>Severity and exploit likelihood</h2>
   {#if kevPub.length}<p class="insight"><b>{pct(notCritKev)}</b> of the exploited CVEs published {monthShort(a)} to {monthShort(selFull.at(-1)!.ym)} were not rated Critical.</p>{/if}
-  <p>CVSS says how bad a flaw could be. EPSS estimates how likely it is to be exploited. The two often disagree, and the gap shows where severity alone misleads.</p>
+  <p>CVSS describes technical severity. EPSS estimates exploitation likelihood.</p>
 </header>
 <div class="view-period"><Period {months} compact /></div>
 

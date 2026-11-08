@@ -191,8 +191,8 @@
 </main>
 
 {#if data}
-  <footer class="wrap"><div class="notes" id="notes" tabindex="-1">
-    <h2 class="kicker">Sources and notes</h2>
+  <footer class="wrap"><details class="notes" id="notes" tabindex="-1">
+    <summary>Sources and notes</summary>
     <ol>
       <li id="note-1" tabindex="-1"><b>CVEs</b> come from the NVD CVE JSON 2.0 feeds (feed time {data.meta.nvd.slice(0, 16).replace('T', ' ')} UTC) and are counted by NVD publication month. {num(data.meta.rejected)} rejected CVEs are excluded from all counts. The current month is partial and is hatched in charts. The headline trend compares the latest 12 full months with the 12 before; the vendor comparison uses this calendar year so far against all of last year.</li>
       <li id="note-2" tabindex="-1"><b>Exploited</b> means listed in the CISA Known Exploited Vulnerabilities catalogue (version {data.meta.kev.version}, {num(data.meta.kevCount)} entries). KEV only lists vulnerabilities with reliable evidence of exploitation that CISA tracks, so it undercounts real-world exploitation.</li>
@@ -202,7 +202,7 @@
       <li id="note-6" tabindex="-1"><b>Vendor and product</b> come from the first vulnerable CPE (CVE counts by vendor use the year of publication), falling back to the CNA's affected data. Names are normalised, so small vendors may appear under slightly different spellings.</li>
     </ol>
     {#if notes.origin}<button class="note-back" onclick={() => { notes.origin?.focus(); notes.origin = null }}>Back to citation</button>{/if}
-  </div></footer>
+  </details></footer>
   <div class="closing">
     <div class="wrap">
       <!-- endorsed lockup: the product is the hero here, so Nimstead and its seal step down to the endorsement -->
@@ -212,7 +212,7 @@
           <li><a href="https://nvd.nist.gov/">NVD</a></li>
           <li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA KEV</a></li>
           <li><a href="https://www.first.org/epss/">FIRST EPSS</a></li>
-          <li><a href="#notes" onclick={(e) => { e.preventDefault(); const n = document.getElementById('notes'); n?.scrollIntoView(); n?.focus({ preventScroll: true }) }}>Method notes</a></li>
+          <li><a href="#notes" onclick={(e) => { e.preventDefault(); const n = document.getElementById('notes') as HTMLDetailsElement | null; if (n) { n.open = true; notes.origin = null; n.scrollIntoView(); n.focus({ preventScroll: true }) } }}>Method notes</a></li>
         </ul></div>
         <div><h2>Project</h2><ul>
           <li><a href="https://nimstead.systems">Nimstead</a></li>
@@ -268,7 +268,9 @@
   .loading span { width: 18px; background: var(--ink); animation: pulse 900ms ease-in-out infinite alternate; }
   .loading span:nth-child(2) { animation-delay: 150ms; } .loading span:nth-child(3) { animation-delay: 300ms; background: var(--kev); }
   @keyframes pulse { from { height: 20%; } to { height: 100%; } }
-  .notes { border-top: 2px solid var(--rule-strong); margin-top: 3.5rem; padding-top: 1.25rem; padding-bottom: 3rem; font-size: 0.8125rem; color: var(--ink-3); }
+  .notes { border-top: 2px solid var(--rule-strong); margin-top: 2rem; margin-bottom: 2rem; font-size: 0.8125rem; color: var(--ink-3); }
+  .notes summary { padding: 0.85rem 0; color: var(--ink); font: 600 0.9375rem/1.4 var(--sans); cursor: pointer; }
+  .notes[open] { padding-bottom: 1rem; }
   .notes ol { columns: 2 22rem; column-gap: 3rem; padding-left: 1.2rem; margin: 1rem 0 0; }
   .notes li { max-width: 70ch; text-wrap: pretty; break-inside: avoid; margin-bottom: 0.7rem; scroll-margin-top: 5rem; padding: 0.15rem 0.3rem; margin-left: -0.3rem; transition: background-color 300ms; }
   .note-back { min-height: 2.75rem; padding: 0.5rem 0.8rem; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; }

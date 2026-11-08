@@ -168,13 +168,6 @@
   const tipMonth = (ym: string) => monthLong(ym) + (partial && ym === months.at(-1)!.ym ? ' (partial)' : '')
 </script>
 
-<section class="briefing" aria-label="Start with Pulse">
-  <div class="briefing-actions">
-    <a href="/week/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('week') }}>Prepare a handover</a>
-    <a href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Triage your CVEs</a>
-  </div>
-</section>
-
 <div class="summary" bind:this={band}>
 <section class="lead">
   <div>
@@ -194,17 +187,21 @@
   <span class="sr-only" role="status" data-no-export>{bandStatus === '…' ? 'Copying summary…' : bandStatus}</span>
   </div>
   <dl class="answers">
+    {#if trend != null}
     <div>
       <dt>Period</dt>
-      <dd><b>{num(N)}</b> CVEs in the complete months of the selected period{#if trend != null}; the trend compares the latest 12 months with the 12 before{/if}.</dd>
+      <dd><b>{num(N)}</b> CVEs in the complete months of the selected period.</dd>
     </div>
+    {/if}
     <div>
       <dt>Exploitation</dt>
-      <dd>{#if share}Since {monthShort(sel[0].ym)}, about <b>1 in {num(1 / share)}</b> CVEs is confirmed exploited.<Fn n={2} />{' '}{/if}{#if lags.length}<b>{pct(within30)}</b> of the KEV listings came within 30 days of publication.<Fn n={3} />{:else}{NO_KEV}{/if}</dd>
+      <dd>{#if share && trend != null && kevTrend != null}Since {monthShort(sel[0].ym)}, about <b>1 in {num(1 / share)}</b> CVEs is confirmed exploited.<Fn n={2} />{' '}{/if}{#if lags.length}<b>{pct(within30)}</b> of the KEV listings came within 30 days of publication.<Fn n={3} />{:else}{NO_KEV}{/if}</dd>
     </div>
     <div>
       <dt>So what</dt>
-      <dd>KEV confirms exploitation; EPSS estimates likelihood. Use both to prioritise<Fn n={5} /> alongside exposure and business impact. Absence from KEV does not mean safe. <a class="linklike" href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Check your own CVEs</a></dd>
+      <dd>KEV confirms exploitation; EPSS estimates likelihood. Use both to prioritise<Fn n={5} /> alongside exposure and business impact. Absence from KEV does not mean safe.
+        <span class="next-actions"><a href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Triage your CVEs</a><a href="/week/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('week') }}>Prepare a handover</a></span>
+      </dd>
     </div>
   </dl>
 </section>
@@ -334,21 +331,14 @@
       </li>
     {/each}
   </ul>
-  <div class="ctas">
-    <a class="cta" href="/week/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('week') }}>Everything that changed this week</a>
-    <a class="cta alt" href="/watchlist/" onclick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); go('watchlist') }}>Check your own CVEs</a>
-  </div>
 </section>
 
 <style>
   .slide-host { position: fixed; left: -99999px; top: 0; }
   .slide-export { width: 1248px; }
   .term { margin: 1rem 0 0; font-size: 0.875rem; color: var(--ink-3); }
-  .briefing { padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
-  .briefing-actions { display: flex; flex-wrap: wrap; gap: 0.25rem 2rem; }
-  .briefing-actions a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 0; text-underline-offset: 0.2em; font: 600 0.9375rem/1.3 var(--sans); }
-  .briefing-actions a:hover { text-decoration-thickness: 2px; }
-  @media (max-width: 560px) { .briefing-actions { gap: 0.25rem 1.25rem; } }
+  .next-actions { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin-top: 0.5rem; }
+  .next-actions a { display: inline-flex; align-items: center; min-height: 2.75rem; font-size: 0.9375rem; font-weight: 600; text-underline-offset: 0.2em; }
   .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.75rem, 3vw, 2.75rem) 0 1.75rem; }
   .headline { font: 800 clamp(2.5rem, 5.2vw, 4.75rem)/0.94 var(--display); letter-spacing: -0.05em; max-width: 19ch; overflow-wrap: anywhere; hyphens: auto; }
   .headline :global(.fn) { font-size: 0.32em; vertical-align: 1.6em; letter-spacing: 0; }
@@ -420,12 +410,6 @@
   }
   .latest .v { font-weight: 600; }
   .latest .d { color: var(--ink-3); font-size: 0.875rem; }
-  .cta { text-decoration: none; margin-top: 1.25rem; font: 700 0.9375rem/1 var(--sans); padding: 0.95rem 1.35rem; background: var(--ink); color: var(--paper); border: 2px solid var(--ink); cursor: pointer; transition: background-color 150ms, color 150ms; }
-  .cta:hover { background: var(--paper); color: var(--ink); }
-  .ctas { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
-  .ctas .cta { text-decoration: none; margin-top: 0; }
-  .cta.alt { background: var(--paper); color: var(--ink); }
-  .cta.alt:hover { background: var(--ink); color: var(--paper); }
   @media (max-width: 1100px) {
     .lead { grid-template-columns: minmax(0, 1fr); }
     .answers { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem clamp(1.5rem, 3vw, 3rem); }

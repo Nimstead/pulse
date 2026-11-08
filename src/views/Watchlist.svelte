@@ -250,7 +250,7 @@
 
 <header class="view-head">
   <h2>Your CVEs</h2>
-  <p>Paste or drop the CVEs that affect you, from a scanner export, a ticket or a spreadsheet, and get one prioritised analysis of the whole set.</p>
+  <p>Paste CVE IDs or drop a scanner export to build a prioritised queue.</p>
 </header>
 
 <section class="intake">
@@ -311,7 +311,7 @@
     <p>The textarea contains {num(parsed.ids.length)} unique CVE ID{parsed.ids.length === 1 ? '' : 's'}. The previous result used {num(watch.ids.length)} ID{watch.ids.length === 1 ? '' : 's'} and contains {num(n)} analysed CVE{n === 1 ? '' : 's'}, plus {num(watch.missing.length)} not found and {num(watch.rejected.length)} rejected. Reanalyse to show results. The previous analysis remains in this tab, but its charts and exports are unavailable until the input matches again or you reanalyse.</p>
   </section>
 {:else if watch.ids.length}
-  {#if watch.example}<p class="exnote"><b>A worked example.</b> These are 14 well-known CVEs. Paste or drop your own list above and press Analyse to replace them; your list never leaves this browser.</p>{/if}
+  {#if watch.example}<p class="exnote"><b>A worked example: 14 well-known CVEs.</b> Analyse your own list above to replace it.</p>{/if}
   <section class="coverage" aria-label="Analysis coverage" tabindex="-1" bind:this={coverage}>
     <p role="status"><b>{num(watch.ids.length)} submitted</b> · {num(n)} matched · {num(watch.missing.length)} not found · {num(watch.rejected.length)} rejected</p>
     {#if watch.missing.length || watch.rejected.length}
@@ -345,14 +345,11 @@
     {likelyN ? `${num(likelyN)} more ${likelyN === 1 ? 'has' : 'have'} an EPSS score of 10% or higher, an estimated probability of exploitation within the next 30 days.` : ''}
   </p>
 
-  <div class="tiles">
-    <div><div class="kicker">Exploited (in KEV)</div><div class="big red">{num(kevN)}</div><div class="cmp">{pct(kevN / n)} of matched CVEs</div></div>
-    <div><div class="kicker">Known ransomware use</div><div class="big" class:red={ransomN > 0}>{num(ransomN)}</div><div class="cmp">KEV entries CISA links to ransomware</div></div>
-    {#if ui.kevDeadlines}<div><div class="kicker">Past the CISA due date</div><div class="big">{num(overdueN)}</div><div class="cmp">Federal benchmark; not your remediation status</div></div>{/if}
-    <div><div class="kicker">Elevated EPSS · 10%+</div><div class="big">{num(likelyN)}</div><div class="cmp">not listed in KEV</div></div>
-    <div><div class="kicker">Critical or high</div><div class="big">{num(severeN)}</div><div class="cmp">{pct(severeN / n)} of matched CVEs, by CVSS</div></div>
-    <div><div class="kicker">Not scored yet</div><div class="big">{num(unscoredN)}</div><div class="cmp">no CVSS from NVD or the CNA</div></div>
-  </div>
+  <dl class="signal-summary" aria-label="Supporting analysis signals">
+    <div><dt>Critical or high</dt><dd><b>{num(severeN)}</b> · {pct(severeN / n)} of matched CVEs, by CVSS</dd></div>
+    <div><dt>Not scored yet</dt><dd><b>{num(unscoredN)}</b> · no CVSS from NVD or the CNA</dd></div>
+    {#if ui.kevDeadlines}<div><dt>Past the CISA due date</dt><dd><b>{num(overdueN)}</b> · Federal benchmark; not your remediation status</dd></div>{/if}
+  </dl>
 
   <div class="filters">
     <div><label class="filter-label" for="watch-filter">Filter by CVE, vendor or product</label>
@@ -543,11 +540,6 @@
   .filter-label { display: block; font-weight: 700; margin: 0 0 0.35rem; }
   .filters { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(11rem, 0.5fr); gap: 0 1rem; max-width: 42rem; }
   .filter-input { width: 100%; min-height: 2.75rem; padding: 0.5rem 0.7rem; border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink); font: 400 1rem var(--sans); margin-bottom: 0.8rem; }
-  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem clamp(1rem, 3vw, 3rem); margin-bottom: 1.75rem; }
-  .tiles > div { border-top: 2px solid var(--rule-strong); padding-top: 0.8rem; }
-  .big { font: 800 clamp(2rem, 4vw, 2.8rem)/0.95 var(--display); letter-spacing: -0.05em; margin-top: 0.35rem; }
-  .big.red { color: var(--kev); }
-  .cmp { font-size: 0.82rem; color: var(--ink-2); margin-top: 0.35rem; }
   .descs { border: 1px solid var(--line-strong); padding: 0.8rem 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; }
   .descs p { margin: 0; }
   .dlrow { display: flex; align-items: center; gap: 0.6rem 1.25rem; justify-content: space-between; flex-wrap: wrap; }
@@ -591,10 +583,8 @@
   .unmatched p { margin: 0.35rem 0 1rem; overflow-wrap: anywhere; }
   @media (max-width: 900px) { .intake { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 560px) { .filters { grid-template-columns: minmax(0, 1fr); } }
-  @media (max-width: 720px) { .tiles { grid-template-columns: 1fr 1fr; } }
   @container (max-width: 36rem) { .filters { grid-template-columns: minmax(0, 1fr); } }
   @container (max-width: 16rem) {
-    .tiles { grid-template-columns: minmax(0, 1fr); }
     /* Keep each enlarged record together when two readable columns no longer fit. */
     table.data thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     table.data tbody tr { display: grid; grid-template-columns: minmax(0, 1fr); }

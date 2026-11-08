@@ -261,7 +261,7 @@ An achromatic ink-and-paper palette with a single semantic crimson. Every themed
 
 Content sits in a single wrap of max 1320px with a fluid gutter of clamp(16px, 3vw, 40px). The brand wrap is 1180px; the app widens it for chart density so monthly bars across five or more years stay legible. Ink bands (topbar, Pulse band, closing band) run full bleed outside the wrap.
 
-The Overview opens on a 7:4 grid: the display sentence left, three Summary answers (Volume, Speed, So what) right, each under a 2px rule. Below 1100px the answers go to a three-column row; below 900px everything stacks to one column, including the Pulse band, whose columns switch from left dividers to top dividers. Paired figures use a two-column grid with a gap of clamp(1.5rem, 3vw, 3rem), stacking at 900px. Figure captions stack their actions below 560px.
+The Overview opens on a 7:4 grid: the display sentence left, three Summary answers (Period, Exploitation, So what) right, each under a 2px rule. The two task links live once in So what, rather than in separate strips above and below the report. Below 1100px the answers go to a three-column row; below 900px everything stacks to one column, including the Pulse band, whose columns switch from left dividers to top dividers. Paired figures use a two-column grid with a gap of clamp(1.5rem, 3vw, 3rem), stacking at 900px. Figure captions stack their actions below 560px.
 
 The tab nav uses Paper with 1px Line borders and wraps whenever its labels need room, including at enlarged text sizes. Only a single row is sticky; multiple rows scroll with the page. Under 640px the nav is always static, and the search and theme controls collapse to 44px square buttons.
 
@@ -292,7 +292,7 @@ Square everywhere (0px radius): buttons, chips, fields, dialogs, tooltips, bars,
 ### Buttons
 Blunt, bordered, ink-on-paper; hover inverts.
 - **Shape:** square (0px), 2px Ink border.
-- **Primary:** Ink fill, Paper text, 700 0.9375rem, padding 0.95rem 1.35rem (the "Everything that changed this week" call to action; the primary action on Your CVEs). Hover inverts to Paper with Ink text.
+- **Primary:** Ink fill, Paper text and 700 weight for Analyse on Your CVEs and Copy summary for slides on Overview. Hover inverts to Paper with Ink text. Cross-report task links remain plain underlined links.
 - **Secondary:** Paper fill, Ink text, 700 0.8125rem, padding 0.5rem 0.85rem (figure "Copy PNG" and "CSV"). Hover inverts to Ink. Active nudges down 1px.
 - **Tool buttons:** the header search and theme toggle are 2.75rem tall with a 2px Ink border, Muted text, Concrete on hover.
 - **Disabled:** Concrete fill and border, grey text, default cursor.
@@ -334,6 +334,11 @@ KEV bar charts pass `cap` to Bars: the axis stops at 1.4× the 90th percentile, 
 
 ### Example list
 "Your CVEs" renders a fixed example list automatically on its first visit in a page load, labelled as a worked example; after Clear the view stays empty and offers "Show the example again". It is fetched exactly like a pasted list, so it adds no request that could reveal anything.
+
+### Supporting signals and method notes
+This week and Your CVEs put the primary finding in a sentence, followed by a compact definition list of supporting signals. Counts already stated in the headline do not become a second row of large tiles. Severity, unavailable scores and optional federal benchmarks remain labelled and visible before the queue. Full method notes use a native disclosure; a citation opens its note and moves keyboard focus there, with a return action. Source dates, decision-critical caveats and exported provenance remain in context.
+
+The distill pass removes repeated representations and navigation, not capabilities: all six reports, period controls, private analysis, chart/data exports, snapshots, handovers, citations and vendor drilldowns keep their existing entry points. Introductory text states the unique caveat or action instead of repeating the heading and chart captions.
 
 ### Start here (This week)
 A ranked, single-column list under the stats: every KEV item overdue or due today, then everything newly exploited, then the rest of the KEV deadlines in the window, then the 2 fresh CVEs with the highest EPSS ("Likely target" at EPSS 10% or more, otherwise "Top EPSS this week"). The first 7 rows show, then a linklike "Show all N" toggle. Each row is number, CVE ID (fixed width), reason chip, name with a facts line (date · severity · EPSS) and the deadline in words; crimson chips only for KEV rows. "Copy as text" writes a plain brief of the full list to the clipboard and nothing else; CSV downloads the full list.
