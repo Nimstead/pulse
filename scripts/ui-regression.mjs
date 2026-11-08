@@ -584,7 +584,7 @@ await check('source notes take keyboard users directly to the referenced figure'
 })
 
 await check('all routes reflow without page panning at 200 percent text', async p => {
-  for (const width of [320, 390, 641, 720]) for (const route of ['/', '/exploitation/', '/severity/', '/vendors/', '/week/', '/watchlist/']) {
+  for (const width of [320, 390, 641, 720]) for (const route of ['/', '/#?from=2026-08&to=2026-10', '/exploitation/', '/severity/', '/vendors/', '/week/', '/watchlist/']) {
     await p.setViewportSize({ width, height: 1000 })
     await visit(p, route)
     if (route === '/watchlist/') await p.getByRole('button', { name: 'CVE-2021-44228', exact: true }).first().waitFor()
@@ -597,6 +597,40 @@ await check('all routes reflow without page panning at 200 percent text', async 
     assert(size.content <= size.width + 1, route + ' at ' + width + 'px: page content must fit enlarged text')
     assert(size.skipBottom <= 0, 'the unfocused skip link must remain outside the viewport')
   }
+})
+
+await check('slide summaries use a landscape canvas independently of the viewport', async p => {
+  await p.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { write: async () => { throw new Error('Test download fallback') } } }))
+  for (const width of [390, 1440]) {
+    await p.setViewportSize({ width, height: 1000 })
+    await visit(p)
+    const pending = p.waitForEvent('download')
+    await p.getByRole('button', { name: 'Copy summary for slides', exact: true }).click()
+    const stream = await (await pending).createReadStream()
+    const chunks = []; for await (const chunk of stream) chunks.push(chunk)
+    const png = Buffer.concat(chunks), ratio = png.readUInt32BE(16) / png.readUInt32BE(20)
+    assert(ratio > 1.6 && ratio < 1.9, width + 'px: slide summary must be landscape and close to 16:9')
+    assert(png.readUInt32BE(16) >= 2000, 'slide text needs enough output resolution')
+  }
+})
+await check('mobile product rankings expose highest EPSS with the product', async p => {
+  for (const width of [320, 390]) for (const route of ['/week/', '/severity/']) {
+    await p.setViewportSize({ width, height: 1000 })
+    await visit(p, route)
+    const figure = p.locator(route === '/week/' ? '#figure-15' : '#figure-10')
+    const row = figure.locator('tbody tr').first(), signal = row.locator('.mobile-signal')
+    await signal.waitFor()
+    assert.match(await signal.innerText(), /Highest EPSS/)
+    assert((await signal.innerText()).includes((await row.locator('td').last().innerText()).trim()))
+    assert(await signal.evaluate(el => el.getBoundingClientRect().right <= innerWidth), 'the ranking score must be visible without panning')
+  }
+})
+await check('private case records present their signals before description housekeeping', async p => {
+  await visit(p, '/watchlist/')
+  await p.getByRole('button', { name: 'CVE-2021-44228', exact: true }).first().click()
+  const sheet = p.getByRole('dialog', { name: 'CVE-2021-44228' })
+  const order = await sheet.evaluate(el => ({ name: el.querySelector('.name').getBoundingClientRect().top, signals: el.querySelector('.chips').getBoundingClientRect().top, notice: [...el.querySelectorAll('.record-status')].find(n => n.textContent.includes('Description not loaded')).getBoundingClientRect().top }))
+  assert(order.signals < order.notice && order.name < order.notice, 'the CVE meaning and exploitation evidence come before the optional download')
 })
 
 await browser.close()

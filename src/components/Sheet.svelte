@@ -87,10 +87,6 @@
       </div>
     {:else if row === null}
       <p class="record-status">No NVD record for {id} in this snapshot. Check the ID; very new CVEs can take a day to appear.{#if kev} CISA KEV information is available below.{/if}</p>
-    {:else if privateRecord && !row[9]}
-      <div class="record-status"><p>Description not loaded. Download the shared description files in Your CVEs to add it privately.</p>
-        {#if onDescriptions}<button class="retry" onclick={() => close(onDescriptions)}>Go to description download</button>{/if}
-      </div>
     {/if}
     {#if row || kev}
       <div class="chips">
@@ -115,6 +111,17 @@
 
       {#if epssScore != null}
         <div class="meter" aria-hidden="true"><i style:width="{epssScore * 100}%"></i></div>
+      {/if}
+
+      <details class="terms">
+        <summary>CVSS, EPSS and CWE explained</summary>
+        <p><b>CVSS</b> (Common Vulnerability Scoring System) describes technical severity. <b>EPSS</b> (Exploit Prediction Scoring System) estimates exploitation activity in the next 30 days. <b>CWE</b> (Common Weakness Enumeration) identifies the type of weakness.</p>
+      </details>
+
+      {#if privateRecord && row && !row[9]}
+        <div class="record-status"><p>Description not loaded. Download the shared description files in Your CVEs to add it privately.</p>
+          {#if onDescriptions}<button class="retry" onclick={() => close(onDescriptions)}>Go to description download</button>{/if}
+        </div>
       {/if}
 
       <p class="triage">
@@ -165,6 +172,9 @@
   .provenance { margin: -0.5rem 0 1rem; color: var(--ink-3); font-size: 0.8rem; }
   .record-status { margin: 1rem 0; padding: 0.8rem; background: var(--shade); color: var(--ink-2); font-size: 0.875rem; }
   .record-status p { margin: 0; }
+  .terms { margin-bottom: 1rem; font-size: 0.875rem; color: var(--ink-2); }
+  .terms summary { padding: 0.75rem 0; cursor: pointer; font-weight: 600; }
+  .terms p { margin: 0.25rem 0 0; }
   .retry { min-height: 2.75rem; margin-top: 0.5rem; padding: 0.4rem 0.75rem; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; }
   .retry:hover { background: var(--ink); color: var(--paper); }
   .triage { background: var(--shade); border-left: 3px solid var(--ink-2); padding: 0.75rem 0.9rem; margin: 0 0 1.25rem; font-size: 0.875rem; color: var(--ink-2); }

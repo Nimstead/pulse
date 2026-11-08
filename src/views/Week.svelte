@@ -146,7 +146,7 @@
         {#each hotGroups.slice(0, productsShown) as g, i (g.name)}
           {@const r = g.top}
           <tr>
-            <td><b>{g.name}</b></td>
+            <td><b>{g.name}</b><div class="mobile-signal" data-no-export>Highest EPSS <b>{r[8] == null ? 'Unavailable' : epssPct(r[8])}</b></div></td>
             <td class="r"><button class="group-toggle" aria-label="{expandedProduct === g.name ? 'Hide' : 'Show'} {g.rows.length} CVE{g.rows.length === 1 ? '' : 's'} for {g.name}" aria-expanded={expandedProduct === g.name} aria-controls="week-group-{i}" onclick={() => expandedProduct = expandedProduct === g.name ? '' : g.name}>{num(g.rows.length)} CVE{g.rows.length === 1 ? '' : 's'}</button></td>
             <td class="row-identity"><button class="linklike mono-id" onclick={() => openCve(r[0])}>{r[0]}</button><div class="sm">{dateShort(r[1])}</div></td>
             <td><span class="chip" style:border-color={SEV_COLOR[r[4]]}><span class="swatch" style:background={SEV_COLOR[r[4]]}></span>{titleCase(r[4].toLowerCase())}{r[3] != null ? ` ${r[3].toFixed(1)}` : ''}</span></td>

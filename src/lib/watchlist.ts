@@ -6,7 +6,7 @@ export type Item = { row: IdxRow; kev?: Kev; tier: number }
 
 export const MAX_IDS = 10000
 export const TIERS = [
-  { label: 'Act now', note: 'Exploited in the wild, with known ransomware use' },
+  { label: 'Act now', note: 'Exploited in the wild, with known ransomware use. Confirm affected versions and exposure first.' },
   { label: 'Exploited', note: 'Listed in CISA KEV' },
   { label: 'Elevated EPSS', note: 'EPSS score of 10% or higher' },
   { label: 'Severe', note: 'Critical or high severity' },

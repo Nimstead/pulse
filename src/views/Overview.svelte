@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { tick } from 'svelte'
   import { Tween, prefersReducedMotion } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
   import { line } from 'd3-shape'
   import Figure from '../components/Figure.svelte'
   import Bars from '../components/Bars.svelte'
   import Lines from '../components/Lines.svelte'
+  import SummarySlide, { type SlideData } from '../components/SummarySlide.svelte'
   import Period from '../components/Period.svelte'
   import Fn from '../components/Fn.svelte'
   import { copyPng } from '../lib/export'
@@ -53,15 +55,34 @@
   }
 
   let band: HTMLElement
+  let slideNode = $state<HTMLElement>()
+  let slideData = $state<SlideData | null>(null)
   let bandStatus = $state('')
   let bandTimer: ReturnType<typeof setTimeout>
   async function copyBand() {
     clearTimeout(bandTimer)
     bandStatus = '…'
     try {
-      bandStatus = await copyPng(band, 'pulse-summary-' + latest.ym, provenance())
+      const text = (node: Element | null) => {
+        const clone = node?.cloneNode(true) as Element | undefined
+        clone?.querySelectorAll('[data-no-export]').forEach((n) => n.remove())
+        return clone?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+      }
+      const values = [num(latest.n), num(latest.kev), lagNow == null ? 'Unavailable' : `${num(lagNow)} days`]
+      slideData = {
+        headline: text(band.querySelector('.headline')),
+        basis: text(band.querySelector('.basis')) || `Selected period: ${monthShort(sel[0].ym)} – ${monthShort(sel.at(-1)!.ym)}. Counts cover complete months.`,
+        vitals: [...band.querySelectorAll('.sign')].map((sign, i) => ({ label: text(sign.querySelector('h3')), value: values[i], note: text(sign.querySelector('.cmp')) })),
+        comparison: indexed ? { labels: [...indexed.labels], cves: [...indexed.cvesN], kev: [...indexed.kevN], subtitle: `Plain counts, on separate scales, ${monthShort(indexed.from)} – ${monthShort(indexed.to)}.${indexed.context ? ` ${monthShort(indexed.base)} provides comparison context before the selected period.` : ''}` } : null,
+        footer: provenance(),
+      }
+      await tick()
+      await document.fonts.ready
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+      bandStatus = await copyPng(slideNode!, 'pulse-summary-' + sel.at(-1)!.ym, '')
       bandTimer = setTimeout(() => (bandStatus = ''), 4000)
     } catch { bandStatus = 'Failed' }
+    finally { slideData = null }
   }
 
   const motion = { duration: () => (prefersReducedMotion.current ? 0 : 520), easing: cubicOut }
@@ -165,6 +186,7 @@
     {#if trend != null && kevTrend != null}New <mark>KEV listings</mark>: {yearWord(kevTrend).replace(/ in a year$/, '')}.<Fn n={2} />
     {:else if share}Since {monthShort(sel[0].ym)}, about 1 in {num(1 / share)} is confirmed <span class="nw"><mark>exploited</mark>.<Fn n={2} /></span>{/if}
   </h2>
+  <p class="term">KEV is CISA’s Known Exploited Vulnerabilities catalogue.</p>
   {#if !selFull.length}<p class="basis">{num(sum(sel, (m) => m.n))} CVEs published so far in {monthLong(sel[0].ym)}. Monthly charts include partial counts; year-on-year comparisons need complete months.</p>{/if}
   {#if trend != null}{@const w = selFull.slice(-12)}<p class="basis">{kevTrend != null ? 'Both trends compare' : 'The publication trend compares'} {monthShort(w[0].ym)} – {monthShort(w.at(-1)!.ym)} with the 12 months before{#if kevTrend != null}: CVEs by publication month, KEV listings by the month CISA added them{/if}.</p>{/if}
   <button class="copy" onclick={copyBand} disabled={bandStatus === '…'} data-no-export title="Copy the headline, the three figures and Figure 1 as one PNG for slides">{bandStatus === 'Failed' ? 'Retry summary PNG' : bandStatus || 'Copy summary for slides'}</button>
@@ -231,6 +253,12 @@
   </Figure>
 {/if}
 </div>
+
+{#if slideData}
+  <div class="slide-host" inert aria-hidden="true">
+    <div class="slide-export" bind:this={slideNode}><SummarySlide data={slideData} /></div>
+  </div>
+{/if}
 
 {#if why}
 <section class="year-context" aria-labelledby="year-context-title">
@@ -313,13 +341,16 @@
 </section>
 
 <style>
+  .slide-host { position: fixed; left: -99999px; top: 0; }
+  .slide-export { width: 1248px; }
+  .term { margin: 1rem 0 0; font-size: 0.875rem; color: var(--ink-3); }
   .briefing { padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
   .briefing-actions { display: flex; flex-wrap: wrap; gap: 0.25rem 2rem; }
   .briefing-actions a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 0; text-underline-offset: 0.2em; font: 600 0.9375rem/1.3 var(--sans); }
   .briefing-actions a:hover { text-decoration-thickness: 2px; }
   @media (max-width: 560px) { .briefing-actions { gap: 0.25rem 1.25rem; } }
   .lead { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 1.75rem clamp(2rem, 5vw, 5rem); align-items: start; padding: clamp(1.75rem, 3vw, 2.75rem) 0 1.75rem; }
-  .headline { font: 800 clamp(2.5rem, 5.2vw, 4.75rem)/0.94 var(--display); letter-spacing: -0.05em; max-width: 19ch; }
+  .headline { font: 800 clamp(2.5rem, 5.2vw, 4.75rem)/0.94 var(--display); letter-spacing: -0.05em; max-width: 19ch; overflow-wrap: anywhere; hyphens: auto; }
   .headline :global(.fn) { font-size: 0.32em; vertical-align: 1.6em; letter-spacing: 0; }
   mark { background: none; color: var(--kev); }
   .view-period { margin-bottom: 1.25rem; }
@@ -330,6 +361,7 @@
   @media (max-width: 900px) { .pair { grid-template-columns: minmax(0, 1fr); } }
   .basis { margin: 1.1rem 0 0; font-size: 1rem; color: var(--ink-3); max-width: 52ch; }
   .nw { white-space: nowrap; }
+  @container (max-width: 16rem) { .headline .nw { white-space: normal; } }
   .year-context { border-top: 1px solid var(--rule); padding: 1.25rem 0; margin-bottom: 1rem; }
   .year-context h3 { font-size: 1.25rem; }
   .year-context p { max-width: 75ch; color: var(--ink-2); margin: 0.5rem 0 0; }

@@ -98,7 +98,7 @@
           {@const w = g.top}
           {@const age = ageMo(w.pub)}
           <tr>
-            <td><b>{g.name}</b></td>
+            <td><b>{g.name}</b><div class="mobile-signal" data-no-export>Highest EPSS <b>{epssPct(w.epss)}</b></div></td>
             <td class="r"><button class="group-toggle" aria-label="{expandedProduct === g.name ? 'Hide' : 'Show'} {g.rows.length} CVE{g.rows.length === 1 ? '' : 's'} for {g.name}" aria-expanded={expandedProduct === g.name} aria-controls="severity-group-{i}" onclick={() => expandedProduct = expandedProduct === g.name ? '' : g.name}>{num(g.rows.length)} CVE{g.rows.length === 1 ? '' : 's'}</button></td>
             <td class="row-identity"><button class="linklike mono-id" onclick={() => openCve(w.id)}>{w.id}</button><div class="sm">{dateShort(w.pub)}</div></td>
             <td>{w.sev ? `${titleCase(w.sev.toLowerCase())}${w.score != null ? ` ${w.score.toFixed(1)}` : ''}` : '—'}</td>

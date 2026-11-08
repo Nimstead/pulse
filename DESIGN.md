@@ -222,6 +222,9 @@ An achromatic ink-and-paper palette with a single semantic crimson. Every themed
 - **Severity ramp** (sev-critical through sev-unscored): Critical is Ink, then Graphite, a mid grey, a light grey and Concrete for unscored. The ramp inverts sensibly in dark.
 - **Band, Band Foreground, Ash, Band Line** (band, band-fg, ash, band-line): the Ink band family. Band is Ink in light and one step below the page in dark; Ash carries secondary text on bands; Band Line divides band columns and draws the band's edge lines in dark.
 
+- **Brand optical sizes:** the compact masthead uses 1.4rem and the footer endorsement 1.375rem to retain the lockup proportions at their different reading sizes.
+- **Slide export:** a fixed 1280 × 720 canvas including the outer gutter, rendered at 2×. Archivo uses 40px for the finding, 48px for vital signs, 18px for the proof caption, 14px for explanations, 12–13px for compact labels and 11px for provenance. These artifact sizes stay independent of viewport and browser text zoom.
+
 ### Named Rules
 **The One Meaning Rule.** Crimson means confirmed exploitation and nothing else. Not focus, not errors, not emphasis, not "critical" severity, not brand decoration beyond the seal square. If a crimson mark cannot be read as "in KEV", it is wrong.
 
@@ -339,7 +342,7 @@ A ranked, single-column list under the stats: every KEV item overdue or due toda
 Each figure's line compares with its previous 12-month average. The published figure says "The highest month on record." when true and otherwise gives no multiple, so the headline's percentage is the only growth rate on the first screen.
 
 ### Headline proof chart
-Overview Figure 1 plots rolling 12-month CVEs (ink) against KEV listings (crimson), starting after the KEV launch backfill and indexed to 100 twelve months before its last point, so it ends on the headline's two year-on-year numbers. It sits inside the summary block, so "Copy summary for slides" exports headline, Pulse band and this chart as one image.
+Overview Figure 1 plots rolling 12-month CVEs (ink) against KEV listings (crimson) as plain counts on separate scales, starting after the KEV launch backfill. "Copy summary for slides" renders the headline, comparison basis, three vital signs, proof chart and provenance on a dedicated landscape canvas. Short or partial periods explain why the annual comparison is unavailable.
 
 ### CVE case sheet
 A right-hand dialog, max 520px, with a 2px Ink left edge, sliding in on 320ms ease-out-expo and out faster. The CVE ID is set in Headline voice; chips, a two-column facts grid under 1px rules, an EPSS meter (Ink on Concrete) and a timeline on a 2px Line rail where the KEV step is crimson.
